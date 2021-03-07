@@ -13,7 +13,7 @@ class DataLoader:
             f for f in files
             if f"{args['num_coefficients']}Param" in f
         ]
-        random.shuffle(files)
+        random.Random(123).shuffle(files)
 
         num_train = int(len(files) * .8)
         num_valid = int(len(files) * .9)
@@ -44,11 +44,20 @@ class DataGenerator(tf.keras.utils.Sequence):
         return len(self.mapping) // self.batch_size
 
     def __getitem__(self, idx):
-        X = np.empty((0, self.args['input_size']))
-        Y = np.empty((0, self.args['output_size']))
-
         batch = self.mapping[idx:idx+self.batch_size]
         file_ids = np.unique(batch[:, 1]).astype(np.int)
+
+        return self.get_batch(batch, file_ids)
+
+    def load_all(self):
+        batch = self.mapping
+        file_ids = np.unique(batch[:, 1]).astype(np.int)
+
+        return self.get_batch(batch, file_ids)
+
+    def get_batch(self, batch, file_ids):
+        X = np.empty((0, self.args['input_size']))
+        Y = np.empty((0, self.args['output_size']))
 
         for file_id in file_ids:
             # GET ALL IDXs FROM SPECIFIC FILE
