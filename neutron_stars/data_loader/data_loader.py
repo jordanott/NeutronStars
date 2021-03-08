@@ -6,7 +6,7 @@ from glob import iglob
 
 
 class DataLoader:
-    def __init__(self, args=None):
+    def __init__(self, args):
         self.args = args
         files = list(iglob(ns.DATA_DIR + '*.npz'))
         files = [
@@ -25,20 +25,28 @@ class DataLoader:
         self.validation_gen = DataGenerator(
             args=args,
             files=files[num_train:num_valid],
+            scaler=self.train_gen.scaler
         )
         self.test_gen = DataGenerator(
             args=args,
             files=files[num_valid:],
+            scaler=self.train_gen.scaler
         )
         
         
 class DataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, args, files):
+    def __init__(self, args, files, scaler=None):
         self.args = args
         self.files = files
+        self.scaler = None
         self.batch_size = args['batch_size']
 
         self._create_mapping()
+        if scaler is None:
+            x, y = self.load_all()
+            print(x.shape, y.shape)
+            scaler = ns.data_loader.ScalerManager(args, x, y)
+        self.scaler = scaler
 
     def __len__(self):
         return len(self.mapping) // self.batch_size
@@ -75,7 +83,9 @@ class DataGenerator(tf.keras.utils.Sequence):
                 Y, y_file_samples[:, self.args['output_idxs']]
             ])
 
-        return X, Y
+        if self.scaler is None:
+            return X, Y
+        return self.scaler.transform(X, Y)
 
     def _create_mapping(self):
         """
