@@ -12,6 +12,7 @@ AVAILABLE_ACTIVATIONS = {
 def create_callbacks(args):
     callbacks = []
     if args['sherpa']:
+        client, trial = args['sherpa_info']
         sherpa_callback = client.keras_send_metrics(trial, objective_name='val_loss')
         callbacks.append(sherpa_callback)
 
