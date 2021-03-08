@@ -15,6 +15,7 @@ if args['sherpa']:
     trial = client.get_trial()
     args.update(trial.parameters)
     args['trial_id'] = trial.id
+    args['sherpa_info'] = (client, trial)
 
 # SET UP THE DIRECTORY TO STORE RESULTS
 ns.utils.dir_set_up(args)
@@ -34,17 +35,19 @@ if args['run_type'] == 'train':
     callbacks = ns.models.create_callbacks(args)
     # BUILD MODEL ARCHITECTURE BASED ON ARGS
     model = ns.models.build_model(args)
+    # PLOT MODEL
+    tf.keras.utils.plot_model(model, args['model_dir'] + '/model.png')
 
     # COMPILE THE MODEL
     model.compile(
         optimizer=tf.keras.optimizers.Adam(lr=args['lr']),
-        loss=args['loss_function']
+        loss=args['loss_function'],
     )
 
     # TRAIN THE MODEL
     history = model.fit(
         x=data_loader.train_gen,
-        epochs=10,
+        epochs=args['epochs'],
         validation_data=data_loader.validation_gen,
         callbacks=callbacks,
         verbose=2 if args['sherpa'] else 1,
@@ -57,7 +60,5 @@ if args['run_type'] == 'train':
 # LOAD THE BEST NETWORK FROM EARLY STOPPING
 model = tf.keras.models.load_model(args['model_dir'])
 
-# LOAD THE TEST SET AND MAKE PREDICTIONS
-X, Y = data_loader.test_gen.load_all()
-Y_hat = model.predict(X)
-ns.utils.store_predictions(X, Y, Y_hat, args)
+ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
+ns.utils.predict_scale_store(data_loader.test_gen, model, args, 'test')

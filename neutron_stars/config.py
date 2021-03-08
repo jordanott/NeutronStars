@@ -10,8 +10,8 @@ def paradigm_settings(args):
     opts = {
         'spectra': {
             'name': 'spectra',
-            'idxs': np.arange(1024),
-            'columns': np.arange(1024),
+            'idxs': np.arange(250),
+            'columns': np.arange(250),
         },
         'mr': {
             'name': 'details',
@@ -31,7 +31,7 @@ def paradigm_settings(args):
     }
 
     x, y = args['paradigm'].split('2')
-    
+
     args['input_key'] = opts[x]['name']
     args['input_idxs'] = opts[x]['idxs']
     args['input_columns'] = opts[x]['columns']

@@ -7,14 +7,16 @@ def parse_args():
     parser.add_argument('--gpu', default='0', type=str)
     parser.add_argument('--sherpa', action='store_true')
 
+    parser.add_argument('--epochs', default=500, type=int)
+    parser.add_argument('--patience', default=25, type=int)
+    parser.add_argument('--batch_size', default=256, type=int)
+    
     # MODEL ARCHITECTURE OPTIONS
     parser.add_argument('--num_layers', default=10, type=int)
     parser.add_argument('--num_nodes', default=256, type=int)
     parser.add_argument('--batch_norm', action='store_true')
     parser.add_argument('--dropout', type=float, default=.25)
     parser.add_argument('--skip_connections', action='store_true')
-    parser.add_argument('--batch_size', default=256, type=int)
-    parser.add_argument('--patience', default=25, type=int)
     parser.add_argument('--lr', type=float, default=.0001)
     parser.add_argument('--lr_decay', type=float, default=1.)
     parser.add_argument('--loss_function', default='mse')
@@ -26,5 +28,6 @@ def parse_args():
     parser.add_argument('--output_dir', default='Results/')
     parser.add_argument('--num_coefficients', default=2, type=int)
     parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
+    parser.add_argument('--scaler_type', default='standard2standard', choices=ns.data_loader.SCALER_COMBINATIONS)
 
     return vars(parser.parse_args())
