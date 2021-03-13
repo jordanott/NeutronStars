@@ -1,17 +1,19 @@
 import numpy as np
 
 DATA_DIR = '/baldig/physicstest/NeutronStarsData/res/'
-PARADIGMS = ['spectra2eos', 'spectra2mr', 'spectra2star', 'star2eos']
+PARADIGMS = ['spectra+star2eos', 'spectra2eos', 'spectra2mr', 'spectra2star', 'star2eos']
 
 
 def paradigm_settings(args):
+    args['num_folds'] = 1 if args['sherpa'] else 10
+
     num_coefficients = args['num_coefficients']
 
     opts = {
         'spectra': {
             'name': 'spectra',
             'idxs': np.arange(250),
-            'columns': np.arange(250),
+            'columns': np.arange(250).tolist(),
         },
         'mr': {
             'name': 'details',
@@ -30,14 +32,27 @@ def paradigm_settings(args):
         }
     }
 
-    x, y = args['paradigm'].split('2')
+    def get_options(k):
+        return {'key': opts[k]['name'],
+                'idxs': opts[k]['idxs'],
+                'columns': opts[k]['columns']}
 
-    args['input_key'] = opts[x]['name']
-    args['input_idxs'] = opts[x]['idxs']
-    args['input_columns'] = opts[x]['columns']
-    args['input_size'] = len(args['input_idxs'])
+    args['inputs'] = []
+    args['input_size'] = 0
+    args['input_columns'] = []
+    args['outputs'] = []
+    args['output_size'] = 0
+    args['output_columns'] = []
+    inputs, outputs = args['paradigm'].split('2')
 
-    args['output_key'] = opts[y]['name']
-    args['output_idxs'] = opts[y]['idxs']
-    args['output_columns'] = opts[y]['columns']
-    args['output_size'] = len(args['output_idxs'])
+    for x in inputs.split('+'):
+        input_opts = get_options(x)
+        args['inputs'].append(input_opts)
+        args['input_size'] += len(input_opts['idxs'])
+        args['input_columns'].extend(input_opts['columns'])
+
+    for x in outputs.split('+'):
+        output_opts = get_options(x)
+        args['outputs'].append(output_opts)
+        args['output_size'] += len(output_opts['idxs'])
+        args['output_columns'].extend(output_opts['columns'])
