@@ -1,6 +1,27 @@
 import os
+import json
 import pandas as pd
 import tensorflow as tf
+
+
+def load_settings(args):
+    settings_locations = args['load_settings_from']
+    with open(settings_locations, 'r') as f:
+        args.update(json.load(f))
+
+    args['sherpa'] = False
+    args['load_settings_from'] = settings_locations
+
+
+def store_settings(args):
+    settings = {}
+    keys_to_ignore = ['client', 'trial', 'inputs', 'outputs', 'input_columns', 'output_columns']
+    for k, v in args.items():
+        if k not in keys_to_ignore:
+            settings[k] = v
+
+    with open(args['output_dir'] + 'Settings/%05d.json' % args['trial_id'], 'w') as f:
+        f.write(json.dumps(settings, indent=4, sort_keys=True))
 
 
 def gpu_settings(args):
@@ -13,37 +34,42 @@ def gpu_settings(args):
 
 
 def dir_set_up(args):
-    args['output_dir'] = os.path.join(args['output_dir'], args['paradigm']) + '/'
+    if not args['load_settings_from']:
+        args['output_dir'] = os.path.join(args['output_dir'], args['paradigm']) + '/'
 
     if args['sherpa']:
         args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']
     else:
-        args['trial_id'] = 1
-        if args['run_type'] == 'train':
-            while True:
-                args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']
-                if not os.path.isdir(args['model_dir']):
-                    break
-                args['trial_id'] += 1
+        if not args['load_settings_from']:
+            args['trial_id'] = 1
+            if args['run_type'] == 'train':
+                while True:
+                    args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']
+                    if not os.path.isdir(args['model_dir']):
+                        break
+                    args['trial_id'] += 1
 
     os.makedirs(args['model_dir'], exist_ok=True)
     os.makedirs(args['output_dir'] + 'Training/', exist_ok=True)
+    os.makedirs(args['output_dir'] + 'Settings/', exist_ok=True)
     os.makedirs(args['output_dir'] + 'Predictions/', exist_ok=True)
 
 
 def store_training_history(history, args):
     if not args['sherpa']:
         df = pd.DataFrame(history)
-        df.to_csv(args['output_dir'] + 'Training/%05d.csv' % args['trial_id'])
+        df['fold'] = args['fold']
+        df['Iteration'] = list(range(len(df)))
+        df.to_csv(args['output_dir'] + 'Training/%05d_%02d.csv' % (args['trial_id'], args['fold']))
 
 
 def store_predictions(x, y, predictions, args, data_partition='test'):
-    x_df = pd.DataFrame(data=x, columns=args['input_columns'])
+    # x_df = pd.DataFrame(data=x, columns=args['input_columns'])
     y_df = pd.DataFrame(data=y, columns=args['output_columns'])
     p_df = pd.DataFrame(data=predictions, columns=[f'pred_{c}' for c in args['output_columns']])
 
-    df = pd.concat([x_df, y_df, p_df], axis=1)
-    df.to_csv(args['output_dir'] + f'Predictions/{data_partition}_%05d.csv' % args['trial_id'])
+    df = pd.concat([y_df, p_df], axis=1)
+    df.to_csv(args['output_dir'] + f'Predictions/{data_partition}_%05d_%02d.csv' % (args['trial_id'], args['fold']))
 
 
 def predict_scale_store(generator, model, args, data_partition='test'):
