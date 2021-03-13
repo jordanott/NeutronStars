@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import neutron_stars as ns
 from glob import iglob
+from sklearn.model_selection import KFold
 
 
 class DataLoader:
@@ -13,25 +14,42 @@ class DataLoader:
             f for f in files
             if f"{args['num_coefficients']}Param" in f
         ]
-        random.Random(123).shuffle(files)
+        random.Random(args['num_folds']).shuffle(files)
 
         num_train = int(len(files) * .8)
         num_valid = int(len(files) * .9)
 
+        train_files = files[:num_train]
+        validation_files = files[num_train:num_valid]
+        test_files = files[num_valid:]
+
+        if not args['sherpa']:
+            kf = KFold(n_splits=args['num_folds'])
+            for _ in range(args['fold']):
+                train_idxs, val_idxs = next(kf.split(files))
+            train_files = self.get_indices(files, train_idxs)
+            validation_files = self.get_indices(files, val_idxs)
+
         self.train_gen = DataGenerator(
             args=args,
-            files=files[:num_train],
+            files=train_files,
         )
         self.validation_gen = DataGenerator(
             args=args,
-            files=files[num_train:num_valid],
+            files=validation_files,
             scaler=self.train_gen.scaler
         )
-        self.test_gen = DataGenerator(
-            args=args,
-            files=files[num_valid:],
-            scaler=self.train_gen.scaler
-        )
+        # self.test_gen = DataGenerator(
+        #     args=args,
+        #     files=test_files,
+        #     scaler=self.train_gen.scaler
+        # )
+
+    def get_indices(self, files, idxs):
+        selected_files = []
+        for idx in idxs:
+            selected_files.append(files[idx])
+        return selected_files
         
         
 class DataGenerator(tf.keras.utils.Sequence):
@@ -73,14 +91,27 @@ class DataGenerator(tf.keras.utils.Sequence):
             # LOAD SPECIFIC FILE
             np_file = np.load(self.files[file_id])
 
-            x_file_samples = np_file[self.args['input_key']][idxs]
-            y_file_samples = np_file[self.args['output_key']][idxs]
+            inputs = []
+            for input_opt in self.args['inputs']:
+                input_file_sample = np_file[input_opt['key']][idxs]
+                inputs.append(input_file_sample[:, input_opt['idxs']])
+
+            all_inputs = np.concatenate(inputs, axis=-1)
+
+            outputs = []
+            for output_opt in self.args['outputs']:
+                output_file_sample = np_file[output_opt['key']][idxs]
+                outputs.append(output_file_sample[:, output_opt['idxs']])
+
+            all_outputs = np.concatenate(outputs, axis=-1)
+            # x_file_samples = np_file[self.args['input_key']][idxs]
+            # y_file_samples = np_file[self.args['output_key']][idxs]
 
             X = np.concatenate([
-                X, x_file_samples[:, self.args['input_idxs']]
+                X, all_inputs # x_file_samples[:, self.args['input_idxs']]
             ])
             Y = np.concatenate([
-                Y, y_file_samples[:, self.args['output_idxs']]
+                Y, all_outputs # y_file_samples[:, self.args['output_idxs']]
             ])
 
         if self.scaler is None:
