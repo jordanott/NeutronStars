@@ -24,6 +24,7 @@ parameters = [
     sherpa.Continuous('lr_decay', [0.8, 1.]),
     sherpa.Choice('activation', list(ns.models.AVAILABLE_ACTIVATIONS.keys())),
     sherpa.Choice('scaler_type', ns.data_loader.SCALER_COMBINATIONS),
+    sherpa.Choice('loss_function', ['mse', 'mean_absolute_percentage_error']),
     sherpa.Choice('output_dir', [args.output_dir]),
 ]
 
@@ -45,5 +46,5 @@ sherpa.optimize(
     lower_is_better=True,
     command="/home/jott1/tf2_env/bin/python main.py --sherpa",
     max_concurrent=args.max_concurrent,
-    output_dir=args.output_dir
+    output_dir=args.output_dir + args.paradigm
 )

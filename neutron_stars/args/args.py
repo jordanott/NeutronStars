@@ -6,6 +6,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='0', type=str)
     parser.add_argument('--sherpa', action='store_true')
+    parser.add_argument('--load_settings_from', default='')
 
     parser.add_argument('--epochs', default=500, type=int)
     parser.add_argument('--patience', default=25, type=int)
@@ -30,4 +31,8 @@ def parse_args():
     parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
     parser.add_argument('--scaler_type', default='standard2standard', choices=ns.data_loader.SCALER_COMBINATIONS)
 
-    return vars(parser.parse_args())
+    args = vars(parser.parse_args())
+    if args['load_settings_from']:
+        ns.utils.load_settings(args)
+
+    return args
