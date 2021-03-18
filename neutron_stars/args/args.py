@@ -1,3 +1,4 @@
+import sherpa
 import argparse
 import neutron_stars as ns
 
@@ -23,7 +24,7 @@ def parse_args():
     parser.add_argument('--loss_function', default='mse')
     parser.add_argument('--activation', default='relu', choices=ns.models.AVAILABLE_ACTIVATIONS)
 
-    parser.add_argument('--run_type', choices=['train', 'test'], default='train')
+    parser.add_argument('--run_type', choices=['train', 'test', 'uncertain'], default='train')
 
     parser.add_argument('--model_dir', default='')
     parser.add_argument('--output_dir', default='Results/')
@@ -32,7 +33,18 @@ def parse_args():
     parser.add_argument('--scaler_type', default='standard2standard', choices=ns.data_loader.SCALER_COMBINATIONS)
 
     args = vars(parser.parse_args())
+
+    ns.utils.gpu_settings(args)
+
     if args['load_settings_from']:
         ns.utils.load_settings(args)
+
+    # IF CONDUCTING HP SEARCH: GET ARGS
+    if args['sherpa']:
+        client = sherpa.Client()
+        trial = client.get_trial()
+        args.update(trial.parameters)
+        args['trial_id'] = trial.id
+        args['sherpa_info'] = (client, trial)
 
     return args

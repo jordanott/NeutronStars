@@ -5,17 +5,22 @@ import tensorflow as tf
 
 
 def load_settings(args):
-    settings_locations = args['load_settings_from']
-    with open(settings_locations, 'r') as f:
+    stored_settings = {
+        'sherpa': False,
+        'run_type': args['run_type'],
+        'output_dir': 'Results/',
+        'load_settings_from': args['load_settings_from'],
+    }
+
+    with open(args['load_settings_from'], 'r') as f:
         args.update(json.load(f))
 
-    args['sherpa'] = False
-    args['load_settings_from'] = settings_locations
+    args.update(stored_settings)
 
 
 def store_settings(args):
     settings = {}
-    keys_to_ignore = ['client', 'trial', 'inputs', 'outputs', 'input_columns', 'output_columns']
+    keys_to_ignore = ['sherpa_info', 'inputs', 'outputs', 'input_columns', 'output_columns']
     for k, v in args.items():
         if k not in keys_to_ignore:
             settings[k] = v
@@ -34,13 +39,14 @@ def gpu_settings(args):
 
 
 def dir_set_up(args):
-    if not args['load_settings_from']:
-        args['output_dir'] = os.path.join(args['output_dir'], args['paradigm']) + '/'
+    args['output_dir'] = os.path.join(args['output_dir'], args['paradigm']) + '/'
 
     if args['sherpa']:
         args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']
     else:
-        if not args['load_settings_from']:
+        if args['load_settings_from']:
+            args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']
+        else:
             args['trial_id'] = 1
             if args['run_type'] == 'train':
                 while True:

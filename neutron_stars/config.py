@@ -22,8 +22,8 @@ def paradigm_settings(args):
         },
         'star': {
             'name': 'details',
-            'idxs': np.arange(5),
-            'columns': ['Mass', 'Radius', 'nH', 'logTeff', 'dist'],
+            'idxs': np.array([2, 3, 4]),
+            'columns': ['nH', 'logTeff', 'dist'],
         },
         'eos': {
             'name': 'coefficients',
