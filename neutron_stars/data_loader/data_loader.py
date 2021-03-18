@@ -27,6 +27,7 @@ class DataLoader:
             kf = KFold(n_splits=args['num_folds'])
             for _ in range(args['fold']):
                 train_idxs, val_idxs = next(kf.split(files))
+
             train_files = self.get_indices(files, train_idxs)
             validation_files = self.get_indices(files, val_idxs)
 
@@ -39,11 +40,11 @@ class DataLoader:
             files=validation_files,
             scaler=self.train_gen.scaler
         )
-        # self.test_gen = DataGenerator(
-        #     args=args,
-        #     files=test_files,
-        #     scaler=self.train_gen.scaler
-        # )
+        self.test_gen = DataGenerator(
+            args=args,
+            files=test_files,
+            scaler=self.train_gen.scaler
+        )
 
     def get_indices(self, files, idxs):
         selected_files = []
@@ -75,13 +76,13 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         return self.get_batch(batch, file_ids)
 
-    def load_all(self):
+    def load_all(self, transform=True):
         batch = self.mapping
         file_ids = np.unique(batch[:, 1]).astype(np.int)
 
-        return self.get_batch(batch, file_ids)
+        return self.get_batch(batch, file_ids, transform)
 
-    def get_batch(self, batch, file_ids):
+    def get_batch(self, batch, file_ids, transform=True):
         X = np.empty((0, self.args['input_size']))
         Y = np.empty((0, self.args['output_size']))
 
@@ -114,7 +115,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                 Y, all_outputs # y_file_samples[:, self.args['output_idxs']]
             ])
 
-        if self.scaler is None:
+        if self.scaler is None or not transform:
             return X, Y
         return self.scaler.transform(X, Y)
 
