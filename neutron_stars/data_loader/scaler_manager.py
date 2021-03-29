@@ -1,8 +1,9 @@
+import itertools
 import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
 
-SCALER_COMBINATIONS = ['none2none', 'log2none', 'log2standard', 'standard2standard', 'minmax2minmax']
+SCALER_COMBINATIONS = ['none2none', 'log2none', 'log2standard', 'standard2standard', 'minmax2minmax', 'log2exp']
 
 
 class Scaler:
@@ -33,29 +34,95 @@ class NoneScaler(Scaler):
         return x
     
 
+class ExpScaler(Scaler):
+    @staticmethod
+    def transform(x):
+        tmp_x = np.copy(x)
+        tmp_x[:, 0] = np.exp(x[:, 0])
+        tmp_x[:, 1] = np.exp(5 + x[:, 1])
+
+        return tmp_x
+
+    @staticmethod
+    def inverse_transform(x):
+        tmp_x = np.copy(x)
+        tmp_x[:, 0] = np.log(x[:, 0])
+        tmp_x[:, 1] = np.log(x[:, 1]) - 5
+
+        return tmp_x
+
+
 SCALER_TYPES = {
     'log': LogScaler,
+    # 'exp': ExpScaler,
     'none': NoneScaler,
-    'minmax': MinMaxScaler,
+    # 'minmax': MinMaxScaler,
     'standard': StandardScaler,
 }
+
+
+def scaler_combinations_for_paradigm(paradigm):
+    all_scalers = []
+    scaler_types = list(SCALER_TYPES.keys())
+    num_inputs = len(paradigm.split('2')[0].split('+'))
+    num_outputs = len(paradigm.split('2')[1].split('+'))
+
+    for i in range(num_inputs+num_outputs):
+        all_scalers.append(scaler_types)
+
+    all_combos = list(itertools.product(
+        *all_scalers
+    ))
+
+    scaler_combinations = []
+    for combo in all_combos:
+        scaler_combinations.append(
+            '+'.join(combo[:num_inputs]) + '2' + '+'.join(combo[num_inputs:])
+        )
+
+    return scaler_combinations
 
 
 class ScalerManager:
     def __init__(self, args, x, y):
         # SET INPUT AND TARGET SCALERS
-        x_scaler_type, y_scaler_type = args['scaler_type'].split('2')
-        self.x_scaler = SCALER_TYPES[x_scaler_type]()
-        self.y_scaler = SCALER_TYPES[y_scaler_type]()
+        input_scalers, output_scalers = args['scaler_type'].split('2')
+
+        self.input_scalers = {}
+        for input_type, scaler_type in zip(args['input_names'], input_scalers.split('+')):
+            self.input_scalers[input_type] = SCALER_TYPES[scaler_type]()
+
+        self.output_scalers = {}
+        for output_type, scaler_type in zip(args['output_names'], output_scalers.split('+')):
+            self.output_scalers[output_type] = SCALER_TYPES[scaler_type]()
         
         self.fit(x, y)
     
     def fit(self, x, y):
-        self.x_scaler.fit(x)
-        self.y_scaler.fit(y)
-        
+        for input_type in x:
+            self.input_scalers[input_type].fit(x[input_type])
+
+        for output_type in y:
+            self.output_scalers[output_type].fit(y[output_type])
+
     def transform(self, x, y):
-        return self.x_scaler.transform(x), self.y_scaler.transform(y)
+        _x = {
+            input_type: self.input_scalers[input_type].transform(x[input_type])
+            for input_type in x
+        }
+        _y = {
+            output_type: self.output_scalers[output_type].transform(y[output_type])
+            for output_type in y
+        }
+        return _x, _y
     
     def inverse_transform(self, x, y):
-        return self.x_scaler.inverse_transform(x), self.y_scaler.inverse_transform(y)
+        _x = {
+            input_type: self.input_scalers[input_type].inverse_transform(x[input_type])
+            for input_type in x
+        }
+        _y = {
+            output_type: self.output_scalers[output_type].inverse_transform(y[output_type])
+            for output_type in y
+        }
+        return _x, _y
