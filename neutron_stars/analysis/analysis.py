@@ -1,19 +1,20 @@
 import numpy as np
 import pandas as pd
+import neutron_stars as ns
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 from glob import iglob
 from tqdm import tqdm
 
 
-def mse(df, true_cols, pred_cols):
-    errors = (df[true_cols].values - df[pred_cols].values) ** 2
-    return np.mean(errors), pd.DataFrame(data=errors, columns=true_cols)
+def get_named_target_for_paradigm(paradigm, num_coefficients=2):
+    target_names = []
+    opts = ns.get_paradigm_opts(num_coefficients)
+    for target in paradigm.split('2')[-1].split('+'):
+        target_names.extend(opts[target]['columns'])
 
-
-def mape(df, true_cols, pred_cols):
-    errors = 100 * (df[true_cols].values - df[pred_cols].values) / df[true_cols].values
-    return np.mean(np.abs(errors)), pd.DataFrame(data=errors, columns=true_cols)
+    pred_names = ['pred_' + tn for tn in target_names]
+    return target_names, pred_names
 
 
 def cross_validation(path):
@@ -28,28 +29,45 @@ def cross_validation(path):
     return pd.concat(dfs)
 
 
-def calculate_hp_trial_errors(paradigm, metric=mape, num_files=500, targets=['c1', 'c2'], base_path='/baldig/physicstest/NeutronStarsData/SherpaResults/{paradigm}/Predictions/validation_*.csv'):
-    path = base_path.format(paradigm=paradigm)
-    pred_cols = ['pred_' + c for c in targets]
+def calculate_hp_trial_errors(paradigm, metric_type='mape', num_files=500, base_path='/baldig/physicstest/NeutronStarsData/SherpaResults/{paradigm}/Predictions/validation_*.csv'):
     error_dict = {}
+    path = base_path.format(paradigm=paradigm)
     validation_files = list(iglob(path))[:num_files]
+    metric = ns.analysis.AVAILABLE_METRICS[metric_type]()
+    target_names, pred_names = get_named_target_for_paradigm(paradigm)
 
     for val_file in tqdm(validation_files):
         trial_id = int(val_file.replace('_01.csv', '')[-5:])
-        df = pd.read_csv(val_file, index_col=0)[[*targets, *pred_cols]]
-        error_dict[trial_id], _ = metric(df, targets, pred_cols)
+        df = pd.read_csv(val_file, index_col=0)[[*target_names, *pred_names]]
+        error_dict[trial_id], _ = metric(df, target_names, pred_names)
         del df
 
     error_df = pd.DataFrame(error_dict, index=['error']).T
     return error_df
 
 
-def groupby_poisson_noise(paradigm, trial, base_path='Results/{paradigm}/Predictions/poisson_{trial}_10.csv'):
+def plot_overall(df, paradigm, metric_type='mape'):
+    metric = ns.analysis.AVAILABLE_METRICS[metric_type]()
+    target_names, pred_names = get_named_target_for_paradigm(paradigm)
+    _, df_errors = metric(df, target_names, pred_names)
+
+    ax = sns.histplot(data=df_errors.abs())
+    plt.setp(ax.get_legend().get_texts(), fontsize='25')
+    plt.xlabel(metric.label, fontsize=25)
+    plt.title('Histogram by Coefficient', fontsize=25)
+
+    plt.savefig(f'Figures/{paradigm}/overall_{metric_type}_hist.png')
+    plt.show()
+
+
+def groupby_poisson_noise(paradigm, trial, metric_type='mape', base_path='Results/{paradigm}/Predictions/poisson_{trial}_10.csv'):
     path = base_path.format(
         paradigm=paradigm,
         trial='%05d' % trial
     )
     poisson_noise = pd.read_csv(path, index_col=0)
+    metric = ns.analysis.AVAILABLE_METRICS[metric_type]()
+    target_names, pred_names = get_named_target_for_paradigm(paradigm)
 
     all_dfs = []
     all_stds = []
@@ -59,58 +77,66 @@ def groupby_poisson_noise(paradigm, trial, base_path='Results/{paradigm}/Predict
         # SAVE THE MEAN OF 100 PREDICTIONS WITH POISSON NOISE
         all_dfs.append(group.mean().to_frame().T)
         # SAVE THE STD OF 100 PREDICTIONS WITH POISSON NOISE
-        all_stds.append(group[['pred_c1', 'pred_c2']].std().values)
+        all_stds.append(group[pred_names].std().values)
 
     all_dfs = pd.concat(all_dfs)
-    _, all_mapes = mape(all_dfs, ['c1', 'c2'], ['pred_c1', 'pred_c2'])
+    _, all_mapes = metric(all_dfs, target_names, pred_names)
 
-    std_df = pd.DataFrame(data=np.array(all_stds), columns=['c1', 'c2'])
+    std_df = pd.DataFrame(data=np.array(all_stds), columns=target_names)
     plot_mape_std(
         mape_df=all_mapes.abs(),
         std_df=std_df,
+        metric=metric,
         suptitle='For each sample make 100 copies with Poisson noise',
         mape_title='Mean of Augmented Predictions'
     )
+    plt.savefig(f'Figures/{paradigm}/gb_poisson_noise_{metric_type}_hist.png')
+    plt.show()
 
 
-def groupby_unique_eos(df):
+def groupby_unique_eos(df, paradigm, metric_type='mape'):
+
     all_dfs = []
     all_stds = []
+    metric = ns.analysis.AVAILABLE_METRICS[metric_type]()
+    target_names, pred_names = get_named_target_for_paradigm(paradigm)
 
-    for name, group in df.groupby(['fold', 'c1', 'c2']):
+    for name, group in df.groupby(['fold', *target_names]):
         # SAVE THE MEAN OF UNIQUE EOS PARAMS
         all_dfs.append(group.mean().to_frame().T)
         # SAVE THE STD OF UNIQUE EOS PARAMS
-        all_stds.append(group[['pred_c1', 'pred_c2']].std().values)
+        all_stds.append(group[pred_names].std().values)
 
     all_dfs = pd.concat(all_dfs)
-    _, all_mapes = mape(all_dfs, ['c1', 'c2'], ['pred_c1', 'pred_c2'])
+    _, all_mapes = metric(all_dfs, target_names, pred_names)
 
     std_df = pd.DataFrame(data=np.array(all_stds), columns=['c1', 'c2'])
     plot_mape_std(
         mape_df=all_mapes.abs(),
         std_df=std_df,
+        metric=metric,
         suptitle='Groupby Unique EOS Parameters',
-        mape_title='Mean of Predictions for Unique EOS'
+        mape_title='Mean of Predictions for Unique EOS',
     )
+    plt.savefig(f'Figures/{paradigm}/gb_eos_{metric_type}_hist.png')
+    plt.show()
 
 
-def plot_mape_std(mape_df, std_df, suptitle, mape_title):
+def plot_mape_std(mape_df, std_df, metric, suptitle, mape_title):
     # PLOT MAPE OF MEAN PREDICTIONS WITH POISSON NOISE
     plt.subplot(1, 2, 1)
     ax = sns.histplot(data=mape_df);
     plt.setp(ax.get_legend().get_texts(), fontsize='25')
-    plt.xlabel(r'Absolute Percent Error: $100 * |(Y - \hat{Y}) / Y|$', fontsize=25);
+    plt.xlabel(metric.label, fontsize=25);
     plt.title(mape_title)
 
     # PLOT STD
     plt.subplot(1, 2, 2)
-    ax = sns.histplot(data=std_df);
+    ax = sns.histplot(data=std_df)
     plt.setp(ax.get_legend().get_texts(), fontsize='25')
-    plt.xlabel('Standard Deviation');
+    plt.xlabel('Standard Deviation')
 
     plt.suptitle(suptitle, fontsize=25)
-    plt.show()
 
 
 def get_crossval_command(paradigm, trial):
