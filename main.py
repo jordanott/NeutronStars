@@ -26,17 +26,19 @@ ns.paradigm_settings(args)
 if args['run_type'] == 'train':
     ns.utils.store_settings(args)
 
+    args['num_folds'] = 1
     for fold in range(1, args['num_folds']+1):
         args['fold'] = fold
         
         # BUILD THE DATA LOADER & PARTITION THE DATASET
         data_loader = ns.DataLoader(args)
+
         # GET tf.keras CALLBACKS
         callbacks = ns.models.create_callbacks(args)
         # BUILD MODEL ARCHITECTURE BASED ON ARGS
         model = ns.models.build_model(args)
         # PLOT MODEL
-        tf.keras.utils.plot_model(model, args['model_dir'] + '/model.png')
+        tf.keras.utils.plot_model(model, args['model_dir'] + '/model.png', show_shapes=True)
 
         # COMPILE THE MODEL
         model.compile(
@@ -44,7 +46,7 @@ if args['run_type'] == 'train':
             loss=args['loss_function'],
             metrics=['mean_absolute_percentage_error', 'mse']
         )
-    
+
         # TRAIN THE MODEL
         history = model.fit(
             x=data_loader.train_gen,
@@ -106,3 +108,15 @@ elif args['run_type'] == 'uncertain':
         predictions=predictions,
         args=args,
         data_partition='poisson')
+
+elif args['run_type'] == 'test':
+    args['fold'] = 1
+    args['sherpa'] = True
+    args['num_folds'] = 1
+    # BUILD THE DATA LOADER & PARTITION THE DATASET
+    data_loader = ns.DataLoader(args)
+    # LOAD MODEL FROM CROSS-VALIDATION
+    model = tf.keras.models.load_model(args['model_dir'])
+
+    ns.utils.predict_scale_store(data_loader.train_gen, model, args, 'train')
+    ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
