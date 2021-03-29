@@ -10,7 +10,7 @@ import neutron_stars as ns
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpus', default='0,1,2,3', type=str)
-parser.add_argument('--paradigm', default='spectra+star2eos', choices=ns.PARADIGMS)
+parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
 parser.add_argument('--max_concurrent',help='Number of concurrent processes', type=int, default=24)
 parser.add_argument('--output_dir', default='/baldig/physicstest/NeutronStarsData/SherpaResults/')
 args = parser.parse_args()
@@ -19,21 +19,26 @@ args = parser.parse_args()
 os.makedirs(args.output_dir, exist_ok=True)
 
 parameters = [
-    sherpa.Discrete('num_layers', [3, 25]),
-    sherpa.Discrete('num_nodes', [128, 1024]),
-    sherpa.Choice('batch_norm', [0,1]),
+    sherpa.Choice('augmentation', [1, 0]),
+    sherpa.Discrete('num_layers', [1, 12]),
+    sherpa.Discrete('num_nodes', [32, 1024]),
+    sherpa.Choice('batch_norm', [0, 1]),
     sherpa.Continuous('dropout', [0, 1]),
-    sherpa.Choice('skip_connections', [0,1]),
+    sherpa.Choice('skip_connections', [0, 1]),
     sherpa.Continuous('lr', [0.00001, 0.01], 'log'),
     sherpa.Continuous('lr_decay', [0.8, 1.]),
     sherpa.Choice('activation', list(ns.models.AVAILABLE_ACTIVATIONS.keys())),
-    sherpa.Choice('scaler_type', ns.data_loader.SCALER_COMBINATIONS),
-    sherpa.Choice('loss_function', ['mse', 'mean_absolute_percentage_error']),
+    sherpa.Choice('scaler_type', ns.data_loader.scaler_combinations_for_paradigm(args.paradigm)),
+    sherpa.Choice('loss_function', ['mse', 'mean_absolute_percentage_error', 'huber']),
     sherpa.Choice('output_dir', [args.output_dir]),
 ]
 
+if 'spectra' in args.paradigm:
+    parameters.append(
+        sherpa.Choice('conv_branch', [0, 1])
+    )
 
-algorithm = sherpa.algorithms.RandomSearch(max_num_trials=500)
+algorithm = sherpa.algorithms.RandomSearch(max_num_trials=1000)
 
 
 gpus = [int(x) for x in args.gpus.split(',')]

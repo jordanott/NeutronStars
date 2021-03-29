@@ -12,14 +12,16 @@ def parse_args():
     parser.add_argument('--epochs', default=500, type=int)
     parser.add_argument('--patience', default=25, type=int)
     parser.add_argument('--batch_size', default=256, type=int)
-    
+    parser.add_argument('--augmentation', action='store_true')
+
     # MODEL ARCHITECTURE OPTIONS
+    parser.add_argument('--conv_branch', action='store_true')
     parser.add_argument('--num_layers', default=10, type=int)
     parser.add_argument('--num_nodes', default=256, type=int)
     parser.add_argument('--batch_norm', action='store_true')
     parser.add_argument('--dropout', type=float, default=.25)
     parser.add_argument('--skip_connections', action='store_true')
-    parser.add_argument('--lr', type=float, default=.0001)
+    parser.add_argument('--lr', type=float, default=.001)
     parser.add_argument('--lr_decay', type=float, default=1.)
     parser.add_argument('--loss_function', default='mse')
     parser.add_argument('--activation', default='relu', choices=ns.models.AVAILABLE_ACTIVATIONS)
@@ -30,7 +32,8 @@ def parse_args():
     parser.add_argument('--output_dir', default='Results/')
     parser.add_argument('--num_coefficients', default=2, type=int)
     parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
-    parser.add_argument('--scaler_type', default='standard2standard', choices=ns.data_loader.SCALER_COMBINATIONS)
+    parser.add_argument('--use_spectra_stats', action='store_true', help='Take mean of spectra over unique EOS')
+    parser.add_argument('--scaler_type', default='standard2standard', help='Same format as paradigm: log+none2standard')
 
     args = vars(parser.parse_args())
 
