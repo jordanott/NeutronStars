@@ -11,26 +11,27 @@ import neutron_stars as ns
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpus', default='0,1,2,3', type=str)
 parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
-parser.add_argument('--max_concurrent',help='Number of concurrent processes', type=int, default=24)
 parser.add_argument('--output_dir', default='/baldig/physicstest/NeutronStarsData/SherpaResults/')
+parser.add_argument('--max_concurrent', help='Number of concurrent processes', type=int, default=16)
 args = parser.parse_args()
 
 
 os.makedirs(args.output_dir, exist_ok=True)
 
 parameters = [
+    sherpa.Choice('mass_threshold', [3, 6]),
+
     sherpa.Choice('augmentation', [1, 0]),
     sherpa.Discrete('num_layers', [1, 12]),
     sherpa.Discrete('num_nodes', [32, 1024]),
     sherpa.Choice('batch_norm', [0, 1]),
     sherpa.Continuous('dropout', [0, 1]),
     sherpa.Choice('skip_connections', [0, 1]),
-    sherpa.Continuous('lr', [0.00001, 0.01], 'log'),
+    sherpa.Continuous('lr', [0.00001, 0.01]),
     sherpa.Continuous('lr_decay', [0.8, 1.]),
     sherpa.Choice('activation', list(ns.models.AVAILABLE_ACTIVATIONS.keys())),
     sherpa.Choice('scaler_type', ns.data_loader.scaler_combinations_for_paradigm(args.paradigm)),
     sherpa.Choice('loss_function', ['mse', 'mean_absolute_percentage_error', 'huber']),
-    sherpa.Choice('output_dir', [args.output_dir]),
 ]
 
 if 'spectra' in args.paradigm:
@@ -48,7 +49,8 @@ resources = list(itertools.chain.from_iterable(itertools.repeat(x, processes_per
 scheduler = sherpa.schedulers.LocalScheduler(resources=resources)
 
 
-command = f"/home/jott1/tf2_env/bin/python main.py --sherpa --paradigm {args.paradigm}"
+command = f"/home/jott1/tf2_env/bin/python main.py --sherpa --paradigm {args.paradigm} " \
+            f"--output_dir {args.output_dir}"
 
 sherpa.optimize(
     algorithm=algorithm,
