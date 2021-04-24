@@ -26,10 +26,12 @@ def parse_args():
     parser.add_argument('--loss_function', default='mse')
     parser.add_argument('--activation', default='relu', choices=ns.models.AVAILABLE_ACTIVATIONS)
 
-    parser.add_argument('--run_type', choices=['train', 'test', 'uncertain'], default='train')
+    parser.add_argument('--run_type', choices=['train', 'test', 'sample'], default='train')
 
     parser.add_argument('--model_dir', default='')
     parser.add_argument('--output_dir', default='Results/')
+
+    parser.add_argument('--mass_threshold', default=3, type=float)
     parser.add_argument('--num_coefficients', default=2, type=int)
     parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
     parser.add_argument('--use_spectra_stats', action='store_true', help='Take mean of spectra over unique EOS')
@@ -49,5 +51,5 @@ def parse_args():
         args.update(trial.parameters)
         args['trial_id'] = trial.id
         args['sherpa_info'] = (client, trial)
-
+    
     return args
