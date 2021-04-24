@@ -1,16 +1,20 @@
 import os
 import json
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 
 
 def load_settings(args):
     stored_settings = {
+        'gpu': args['gpu'],
         'sherpa': False,
         'run_type': args['run_type'],
         'output_dir': 'Results/',
         'load_settings_from': args['load_settings_from'],
     }
+    if args['model_dir']:
+        stored_settings['model_dir'] = args['model_dir']
 
     with open(args['load_settings_from'], 'r') as f:
         args.update(json.load(f))
@@ -29,7 +33,7 @@ def store_settings(args):
         f.write(json.dumps(settings, indent=4, sort_keys=True))
 
 
-def gpu_settings(args):
+def gpu_settings(args={'gpu': '0'}):
     gpu = os.environ.get("SHERPA_RESOURCE", '')
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu) or args['gpu']
 
@@ -44,7 +48,9 @@ def dir_set_up(args):
     if args['sherpa']:
         args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']
     else:
-        if args['load_settings_from']:
+        if 'sample' in args['run_type']:
+            pass
+        elif args['load_settings_from']:
             args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']
         else:
             args['trial_id'] = 1
@@ -55,10 +61,13 @@ def dir_set_up(args):
                         break
                     args['trial_id'] += 1
 
-    os.makedirs(args['model_dir'], exist_ok=True)
-    os.makedirs(args['output_dir'] + 'Training/', exist_ok=True)
-    os.makedirs(args['output_dir'] + 'Settings/', exist_ok=True)
-    os.makedirs(args['output_dir'] + 'Predictions/', exist_ok=True)
+    try:
+        os.makedirs(args['model_dir'], exist_ok=True)
+        os.makedirs(args['output_dir'] + 'Training/', exist_ok=True)
+        os.makedirs(args['output_dir'] + 'Settings/', exist_ok=True)
+        os.makedirs(args['output_dir'] + 'Predictions/', exist_ok=True)
+    except:
+        pass
 
 
 def store_training_history(history, args):
@@ -66,27 +75,48 @@ def store_training_history(history, args):
         df = pd.DataFrame(history)
         df['fold'] = args['fold']
         df['Iteration'] = list(range(len(df)))
-        df.to_csv(args['output_dir'] + 'Training/%05d_%02d.csv' % (args['trial_id'], args['fold']))
+
+        history_file = args['output_dir'] + 'Training/%05d_%02d.csv' % (args['trial_id'], args['fold'])
+        df.to_csv(history_file)
+
+        print('History written to:', history_file)
 
 
 def store_predictions(x, y, predictions, args, data_partition='test'):
     # x_df = pd.DataFrame(data=x, columns=args['input_columns'])
+    if 'sample' in data_partition:
+        columns = [f'pred_{c}' for c in args['output_columns']]
+        columns.extend([f'pred_std_{c}' for c in args['output_columns']])
+    else:
+        columns = [f'pred_{c}' for c in args['output_columns']]
+
     y_df = pd.DataFrame(data=y, columns=args['output_columns'])
-    p_df = pd.DataFrame(data=predictions, columns=[f'pred_{c}' for c in args['output_columns']])
+    p_df = pd.DataFrame(data=predictions, columns=columns)
 
     df = pd.concat([y_df, p_df], axis=1)
-    df.to_csv(args['output_dir'] + f'Predictions/{data_partition}_%05d_%02d.csv' % (args['trial_id'], args['fold']))
+    prediction_file = args['output_dir'] + f'Predictions/{data_partition}_%05d_%02d.csv' % (args['trial_id'], args['fold'])
+    df.to_csv(prediction_file)
+
+    print('Predictions written to:', prediction_file)
 
 
 def predict_scale_store(generator, model, args, data_partition='test'):
     # LOAD THE PARTITION AND MAKE PREDICTIONS
-    x, y = generator.load_all()
-    y_hat = model.predict(x)
+    try:
+        x, _ = generator.load_all(transform=True)
+        y_hat = model.predict(x, batch_size=args['batch_size'])
+        x, y = generator.load_all(transform=False)
 
-    # UNSCALE DATA
-    x = generator.scaler.x_scaler.inverse_transform(x)
-    y = generator.scaler.y_scaler.inverse_transform(y)
-    y_hat = generator.scaler.y_scaler.inverse_transform(y_hat)
+        y = np.concatenate(y, axis=-1).squeeze()
+
+        # :SINGLE OUTPUT ASSUMPTION:
+        output_name = args['outputs'][0]['name']
+        y_hat = {output_name: y_hat}
+        _, y_hat = generator.scaler.inverse_transform({}, y_hat)
+        y_hat = y_hat[output_name]
+
+    except Exception as e:
+        print(e)
 
     # STORE INPUTS, TARGETS, PREDICTIONS
     store_predictions(x, y, y_hat, args, data_partition)
