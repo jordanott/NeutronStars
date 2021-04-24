@@ -1,7 +1,7 @@
 import numpy as np
 
-DATA_DIR = '/baldig/physicstest/NeutronStarsData/res/'
-PARADIGMS = ['spectra+star2eos', 'spectra+star2mr', 'spectra2eos', 'spectra2mr', 'spectra2star', 'star2eos']
+DATA_DIR = '/baldig/physicstest/NeutronStarsData/res_nonoise10x/'
+PARADIGMS = ['spectra+star2eos', 'spectra+star2mr', 'spectra2eos', 'spectra2mr', 'mr2eos']
 
 
 def get_paradigm_opts(num_coefficients=2):
