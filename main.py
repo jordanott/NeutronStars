@@ -4,6 +4,7 @@
 
 import os
 import tqdm
+import glob
 import pprint
 import numpy as np
 import tensorflow as tf
@@ -64,59 +65,95 @@ if args['run_type'] == 'train':
         model = tf.keras.models.load_model(args['model_dir'])
 
         ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
-        if args['sherpa']:
-            ns.utils.predict_scale_store(data_loader.test_gen, model, args, 'test')
+        # if args['sherpa']:
+        #     ns.utils.predict_scale_store(data_loader.train_gen, model, args, 'train')
 
-elif args['run_type'] == 'uncertain':
-    args['fold'] = 10
-    
-    # BUILD THE DATA LOADER & PARTITION THE DATASET
-    data_loader = ns.DataLoader(args)
-    # LOAD MODEL FROM CROSS-VALIDATION
-    model = tf.keras.models.load_model(args['model_dir'])
-    
-    X, Y = data_loader.validation_gen.load_all(transform=False)
-    
-    targets = np.zeros((100*Y.shape[0], Y.shape[1]))
-    predictions = np.zeros((100*Y.shape[0], Y.shape[1]))
-
-    # ADDING POISSON NOISE TO SPECTROGRAM
-    for i in tqdm.tqdm(range(X.shape[0])):
-        x = X[i]
-        y = Y[i]
-
-        # POISSON NOISE ON SPECTRUM
-        x_poisson = np.random.poisson(x, size=(100, len(x)))
-        x_poisson[:, -3:] = x[-3:]
-
-        # TRANSFORM THE DATA
-        x_poisson_transform = data_loader.validation_gen.scaler.x_scaler.transform(x_poisson)
-
-        # MAKE A PREDICTION
-        y_hat = model.predict(x_poisson_transform)
-
-        # INVERSE TRANSFORM THE PREDICTIONS
-        y_hat_transform = data_loader.validation_gen.scaler.y_scaler.inverse_transform(y_hat)
-        
-        idx = i * 100
-        targets[idx:idx+100] = np.tile(y, (100, 1))
-        predictions[idx:idx+100] = y_hat_transform
-
-    ns.utils.store_predictions(
-        x=None,
-        y=targets,
-        predictions=predictions,
-        args=args,
-        data_partition='poisson')
-
-elif args['run_type'] == 'test':
+elif args['run_type'] == 'sample':
+    """
+    tf2 main.py --run_type sample --paradigm spectra+star2mr \
+    --model_dir /baldig/physicstest/NeutronStarsData/SherpaResults/spectra+star2mr/Models/00470/ \
+    --load_settings_from /baldig/physicstest/NeutronStarsData/SherpaResults/spectra+star2mr/Settings/00470.json \
+    --mass_threshold 3 --gpu 3
+    """
     args['fold'] = 1
     args['sherpa'] = True
     args['num_folds'] = 1
+
+    num_eos_to_sample = 25
+    num_samples_per_star = 50
+
     # BUILD THE DATA LOADER & PARTITION THE DATASET
     data_loader = ns.DataLoader(args)
-    # LOAD MODEL FROM CROSS-VALIDATION
+    # LOAD MODEL
     model = tf.keras.models.load_model(args['model_dir'])
 
-    ns.utils.predict_scale_store(data_loader.train_gen, model, args, 'train')
-    ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
+    for sample_type in ['small_noise', 'poisson', 'empirical', 'uniform']:
+
+        # :SINGLE OUTPUT ASSUMPTION:
+        output_name = args['outputs'][0]['name']
+        targets = np.zeros((0, args['output_size']))
+        predictions = np.zeros((0, args['output_size'] * 2))
+
+        # HOW ARE WE SAMPLING
+        sample_fn = data_loader.sample_nuisance_parameters
+        if sample_type == 'poisson':
+            sample_fn = data_loader.sample_poisson_spectra
+
+        for x, y, num_stars in tqdm.tqdm(data_loader.group_by_eos(num_eos_to_sample), total=num_eos_to_sample):
+            for idx in range(num_stars):
+
+                x_sample, y_sample = sample_fn(x, y, idx,
+                                               num_samples=num_samples_per_star,
+                                               sample_type=sample_type)
+
+                y_hat_sample = model.predict(x_sample, batch_size=args['batch_size'])
+
+                y_hat_sample = {output_name: y_hat_sample}
+                _, y_hat_sample = data_loader.train_gen.scaler.inverse_transform({}, y_hat_sample)
+                y_hat_sample = y_hat_sample[output_name]
+
+                # :SINGLE OUTPUT ASSUMPTION:
+                y_hat_statistic = np.concatenate([np.mean(y_hat_sample, axis=0),
+                                                  np.std(y_hat_sample, axis=0)],
+                                                 axis=0).reshape(1, -1)
+
+                # :SINGLE OUTPUT ASSUMPTION:
+                targets = np.concatenate([targets,
+                                         y[output_name][idx].reshape(1, -1)])
+
+                predictions = np.concatenate([
+                    predictions,
+                    y_hat_statistic
+                ], axis=0)
+
+        ns.utils.store_predictions(x=None, y=targets,
+                                   predictions=predictions, args=args,
+                                   data_partition=args['run_type'] + '_' + sample_type)
+
+elif args['run_type'] == 'test':
+    """
+    >>> tf2 main.py --run_type test --paradigm spectra+star2mr
+    """
+    # LOAD MODEL FROM CROSS-VALIDATION
+    for model_dir in glob.iglob('/baldig/physicstest/NeutronStarsData/SherpaResults/spectra+star2mr/Models/00470'):
+        if not os.path.exists(model_dir + '/saved_model.pb'):
+            continue
+
+        args['load_settings_from'] = model_dir.replace('Models', 'Settings') + '.json'
+        print('Model:', model_dir)
+        print('Settings:', args['load_settings_from'])
+
+        ns.utils.load_settings(args)
+
+        args['fold'] = 1
+        args['sherpa'] = True
+        args['num_folds'] = 1
+        args['output_dir'] = 'Results/spectra+star2mr/' # /baldig/physicstest/NeutronStarsData/Sherpa
+
+        # BUILD THE DATA LOADER & PARTITION THE DATASET
+        data_loader = ns.DataLoader(args)
+
+        model = tf.keras.models.load_model(model_dir)       # args['model_dir'])
+
+        ns.utils.predict_scale_store(data_loader.train_gen, model, args, 'train')
+        ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
