@@ -11,7 +11,7 @@ def get_named_target_for_paradigm(paradigm, num_coefficients=2):
     target_names = []
     opts = ns.get_paradigm_opts(num_coefficients)
     for target in paradigm.split('2')[-1].split('+'):
-        target_names.extend(opts[target]['columns'])
+        target_names.extend(map(str, opts[target]['columns']))
 
     pred_names = ['pred_' + tn for tn in target_names]
     return target_names, pred_names
@@ -56,8 +56,8 @@ def plot_overall(df, paradigm, metric_type='mape'):
     plt.xlabel(metric.label, fontsize=25)
     plt.title('Histogram by Coefficient', fontsize=25)
 
-    plt.savefig(f'Figures/{paradigm}/overall_{metric_type}_hist.png')
-    plt.show()
+    # plt.savefig(f'Figures/{paradigm}/overall_{metric_type}_hist.png')
+    # plt.show()
 
 
 def groupby_poisson_noise(paradigm, trial, metric_type='mape', base_path='Results/{paradigm}/Predictions/poisson_{trial}_10.csv'):
@@ -90,8 +90,8 @@ def groupby_poisson_noise(paradigm, trial, metric_type='mape', base_path='Result
         suptitle='For each sample make 100 copies with Poisson noise',
         mape_title='Mean of Augmented Predictions'
     )
-    plt.savefig(f'Figures/{paradigm}/gb_poisson_noise_{metric_type}_hist.png')
-    plt.show()
+    # plt.savefig(f'Figures/{paradigm}/gb_poisson_noise_{metric_type}_hist.png')
+    # plt.show()
 
 
 def groupby_unique_eos(df, paradigm, metric_type='mape'):
@@ -118,8 +118,8 @@ def groupby_unique_eos(df, paradigm, metric_type='mape'):
         suptitle='Groupby Unique EOS Parameters',
         mape_title='Mean of Predictions for Unique EOS',
     )
-    plt.savefig(f'Figures/{paradigm}/gb_eos_{metric_type}_hist.png')
-    plt.show()
+    # plt.savefig(f'Figures/{paradigm}/gb_eos_{metric_type}_hist.png')
+    # plt.show()
 
 
 def plot_mape_std(mape_df, std_df, metric, suptitle, mape_title):

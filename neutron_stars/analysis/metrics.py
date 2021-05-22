@@ -22,7 +22,18 @@ class MAPE:
         return np.mean(np.abs(errors)), pd.DataFrame(data=errors, columns=true_cols)
 
 
+class MAE:
+    def __init__(self):
+        self.name = 'ae'
+        self.label = r'Absolute Error: $|Y - \hat{Y}|$'
+
+    def __call__(self, df, true_cols, pred_cols):
+        errors = df[true_cols].values - df[pred_cols].values
+        return np.mean(np.abs(errors)), pd.DataFrame(data=errors, columns=true_cols)
+
+
 AVAILABLE_METRICS = {
+    'mae': MAE,
     'mse': MSE,
     'mape': MAPE,
 }
