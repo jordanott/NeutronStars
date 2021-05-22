@@ -3,3 +3,4 @@ pandas
 tqdm
 parameter_sherpa
 seaborn
+joblib

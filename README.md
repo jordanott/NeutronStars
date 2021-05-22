@@ -19,7 +19,9 @@ ns_env -m pip install -r requirements.txt
 ns_env -m pip install -e .
 ```
 
-## Preprocess the data
+## 1) Make predictions on a large batch of files
+
+### Preprocess the data
 ```bash
 # Extract data from gz file
 # I'll use directories on our machines as an example (replace with your own)
@@ -37,14 +39,15 @@ skip0-num10-spectra_4Param_MR.dat.gz
 skip0-num10-spectra_4Param_MR.npz
 ```
 
-## Using the Model
+### Using the Model
+
 ```bash
 ns_env test_scripts/mr_np_to_spectra.py \
 --data_dir /baldig/physicstest/NeutronStarsData/res_nonoise10x/ \
 --load_settings_from SavedModels/mr+star2spectra/00011/00011.json
 ```
 
-## Parsing the Results
+### Parsing the Results
 The inputs, targets, and network predictions are saved in a csv file. You can examine them like this:
 ```python
 import pandas as pd
@@ -73,4 +76,17 @@ plt.plot(true_spectra[idxs].T)
 
 plt.subplot(1,2,2); plt.title('Predicted Spectra')
 plt.plot(np.maximum(pred_spectra[idxs].T, 0))
+```
+
+## 2) Make predictions given mass, radius, nH, logTeff, dist
+```python
+import neutron_stars as ns
+import matplotlib.pyplot as plt
+
+ns_predictor = ns.Predictor()
+spectra = ns_predictor(mass=2.581471, radius=12.089365,
+                       nH=0.013734, logTeff=6.273879, dist=6.011103)
+
+plt.plot(spectra.T)
+plt.savefig('example_generated_spectra.png')
 ```
