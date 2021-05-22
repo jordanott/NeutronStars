@@ -3,5 +3,4 @@ __pycache__
 *.pyc
 *.egg-info
 Results
-SavedModels
 Predictions
