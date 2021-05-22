@@ -1,7 +1,7 @@
 import numpy as np
 
 DATA_DIR = '/baldig/physicstest/NeutronStarsData/res_nonoise10x/'
-PARADIGMS = ['spectra+star2eos', 'spectra+star2mr', 'spectra2eos', 'spectra2mr', 'mr2eos']
+PARADIGMS = ['spectra+star2eos', 'spectra+star2mr', 'spectra2eos', 'spectra2mr', 'mr2eos', 'mr+star2spectra']
 
 
 def get_paradigm_opts(num_coefficients=2):
@@ -34,6 +34,7 @@ def get_paradigm_opts(num_coefficients=2):
 
 
 def paradigm_settings(args):
+    args['fold'] = 1
     args['num_folds'] = 1 if args['sherpa'] else 10
 
     num_coefficients = args['num_coefficients']

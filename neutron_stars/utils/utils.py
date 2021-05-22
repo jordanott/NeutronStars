@@ -82,8 +82,7 @@ def store_training_history(history, args):
         print('History written to:', history_file)
 
 
-def store_predictions(x, y, predictions, args, data_partition='test'):
-    # x_df = pd.DataFrame(data=x, columns=args['input_columns'])
+def store_predictions(x, y, predictions, args, data_partition='test', save_inputs=False):
     if 'sample' in data_partition:
         columns = [f'pred_{c}' for c in args['output_columns']]
         columns.extend([f'pred_std_{c}' for c in args['output_columns']])
@@ -92,31 +91,32 @@ def store_predictions(x, y, predictions, args, data_partition='test'):
 
     y_df = pd.DataFrame(data=y, columns=args['output_columns'])
     p_df = pd.DataFrame(data=predictions, columns=columns)
+    data_frames = [y_df, p_df]
 
-    df = pd.concat([y_df, p_df], axis=1)
+    if save_inputs:
+        x = np.concatenate(x, axis=-1).squeeze()
+        x_df = pd.DataFrame(data=x, columns=args['input_columns'])
+        data_frames.append(x_df)
+
+    df = pd.concat(data_frames, axis=1)
     prediction_file = args['output_dir'] + f'Predictions/{data_partition}_%05d_%02d.csv' % (args['trial_id'], args['fold'])
     df.to_csv(prediction_file)
 
     print('Predictions written to:', prediction_file)
 
 
-def predict_scale_store(generator, model, args, data_partition='test'):
+def predict_scale_store(generator, model, args, data_partition='test', save_inputs=False):
     # LOAD THE PARTITION AND MAKE PREDICTIONS
-    try:
-        x, _ = generator.load_all(transform=True)
-        y_hat = model.predict(x, batch_size=args['batch_size'])
-        x, y = generator.load_all(transform=False)
+    x, _ = generator.load_all(transform=True)
+    y_hat = model.predict(x, batch_size=args['batch_size'])
+    x, y = generator.load_all(transform=False)
 
-        y = np.concatenate(y, axis=-1).squeeze()
-
-        # :SINGLE OUTPUT ASSUMPTION:
-        output_name = args['outputs'][0]['name']
-        y_hat = {output_name: y_hat}
-        _, y_hat = generator.scaler.inverse_transform({}, y_hat)
-        y_hat = y_hat[output_name]
-
-    except Exception as e:
-        print(e)
+    y = np.concatenate(y, axis=-1).squeeze()
+    # :SINGLE OUTPUT ASSUMPTION:
+    output_name = args['outputs'][0]['name']
+    y_hat = {output_name: y_hat}
+    _, y_hat = generator.scaler.inverse_transform({}, y_hat)
+    y_hat = y_hat[output_name]
 
     # STORE INPUTS, TARGETS, PREDICTIONS
-    store_predictions(x, y, y_hat, args, data_partition)
+    store_predictions(x, y, y_hat, args, data_partition, save_inputs=save_inputs)
