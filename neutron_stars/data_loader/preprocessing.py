@@ -72,13 +72,11 @@ def parse_file_dat(file_name):
     with open(file_name, 'r') as f:
         star_nums, details, coefficients, spectra = extra_dat(f)
 
-    np.savez(
-        file_name.replace('.dat', '.npz'),
-        star_nums=star_nums,
-        details=details,
-        coefficients=coefficients,
-        spectra=spectra,
-    )
+    np.savez(file_name.replace('.dat', '.npz'),
+             star_nums=star_nums,
+             details=details,
+             coefficients=coefficients,
+             spectra=spectra)
 
 
 def parse_file_dat_gz(file_name):
@@ -86,21 +84,33 @@ def parse_file_dat_gz(file_name):
     with gzip.open(file_name, 'r') as f:
         star_nums, details, coefficients, spectra = extra_dat(f)
 
-    np.savez(
-        file_name.replace('.dat.gz', '.npz'),
-        star_nums=star_nums,
-        details=details,
-        coefficients=coefficients,
-        spectra=spectra,
-    )
+    np.savez(file_name.replace('.dat.gz', '.npz'),
+             star_nums=star_nums,
+             details=details,
+             coefficients=coefficients,
+             spectra=spectra)
 
 
 if __name__ == '__main__':
+    import os
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_dir', default='/baldig/physicstest/NeutronStarsData/res/')
+    args = parser.parse_args()
+
+    all_files = list(iglob(os.path.join(args.data_dir, '*.dat*')))
+
+    if all_files[0].endswith('.dat'):
+        for file_name in tqdm(all_files):
+            parse_file_dat(file_name)
+
+    elif all_files[0].endswith('.dat.gz'):
+        for file_name in tqdm(all_files):
+            parse_file_dat_gz(file_name)
+
     # tar -xvzf /baldig/physicstest/NeutronStarsData/res.tgz
     # all_files = list(iglob(DATA_DIR + '*.dat.gz'))
 
     # scp -r jott1@gplogin2.ps.uci.edu:/DFS-L/DATA/atlas/whiteson/ns/res_nonoise10x/ /baldig/physicstest/NeutronStarsData/
-    all_files = list(iglob('/baldig/physicstest/NeutronStarsData/res_nonoise10x/*.dat'))
-
-    for file_name in tqdm(all_files):
-        parse_file_dat(file_name)
+    # all_files = list(iglob('/baldig/physicstest/NeutronStarsData/res_nonoise10x/*.dat'))

@@ -56,13 +56,16 @@ SCALER_TYPES = {
     'log': LogScaler,
     # 'exp': ExpScaler,
     'none': NoneScaler,
-    # 'minmax': MinMaxScaler,
+    'minmax': MinMaxScaler,
     'standard': StandardScaler,
 }
 
 
 def scaler_combinations_for_paradigm(paradigm):
     all_scalers = []
+    if 'eos' in paradigm:
+        del SCALER_TYPES['log']
+
     scaler_types = list(SCALER_TYPES.keys())
     num_inputs = len(paradigm.split('2')[0].split('+'))
     num_outputs = len(paradigm.split('2')[1].split('+'))

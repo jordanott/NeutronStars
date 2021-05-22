@@ -4,6 +4,7 @@ import pandas as pd
 import tensorflow as tf
 import neutron_stars as ns
 from glob import iglob
+from .generators import *
 from sklearn.model_selection import KFold
 
 
@@ -12,11 +13,11 @@ class DataLoader:
         self.args = args
 
         # GET ALL FILES WITH CORRECT NUM OF EOS PARAMS
-        files = [f for f in list(iglob(ns.DATA_DIR + '*.npz'))
-                 if f"{args['num_coefficients']}Param" in f]
+        files = [f for f in list(iglob(args['data_dir'] + '*.npz'))
+                 if f"{args['num_coefficients']}Param" in f][:10]
 
-        if args['run_type'] == 'sample':
-            files = files[:10]
+        # if args['run_type'] == 'sample':
+        # files = files[:25]
 
         # INIT PLACEHOLDERS FOR DATA DICTIONARY
         X = {opts['name']: np.zeros((0, len(opts['idxs'])))
@@ -48,8 +49,7 @@ class DataLoader:
 
                 Y[name] = np.concatenate([Y[name], new_sample])
 
-            if args['run_type'] == 'sample':
-                self.eos = np.concatenate([self.eos, np_file['coefficients'][mass_threshold]])
+            self.eos = np.concatenate([self.eos, np_file['coefficients'][mass_threshold]])
 
         if 'spectra' in X:
             X['spectra'] *= 10000.
@@ -75,25 +75,37 @@ class DataLoader:
 
         x_train = {input_type: X[input_type][train_idxs] for input_type in X}
         y_train = {output_type: Y[output_type][train_idxs] for output_type in Y}
+        eos_train = self.eos[train_idxs]
+
         x_test = {input_type: X[input_type][val_idxs] for input_type in X}
         y_test = {output_type: Y[output_type][val_idxs] for output_type in Y}
+        eos_test = self.eos[val_idxs]
 
-        self.train_gen = DataGenerator(x_train, y_train, args)
-        self.validation_gen = DataGenerator(x_test, y_test, args, self.train_gen.scaler)
+        if args['model_type'] == 'transformer':
+            self.train_gen = ManyStarsGenerator(args, self.group_by_eos(x_train, y_train, eos_train, 'all'))
+            self.validation_gen = ManyStarsGenerator(args, self.group_by_eos(x_test, y_test, eos_test, 'all'))
+            print('Lengths:', len(self.train_gen), len(self.validation_gen))
+        else:
+            self.train_gen = DataGenerator(x_train, y_train, args)
+            self.validation_gen = DataGenerator(x_test, y_test, args, self.train_gen.scaler)
+            self.all_gen = DataGenerator(self.X, self.Y, args, self.train_gen.scaler)
 
-    def group_by_eos(self, num_samples=10):
-        unique_eos = np.unique(self.eos, axis=0)
+    def group_by_eos(self, X=None, Y=None, EOS=None, num_samples=10):
+        if X is None:
+            X = self.X; Y = self.Y; EOS = self.eos
+
+        unique_eos = np.unique(EOS, axis=0)
         if num_samples != 'all':
             unique_eos = unique_eos[:num_samples]
 
         for eos in unique_eos:
             # Find idx of matching eos coefficients
-            match = np.all(self.eos == eos, axis=1)
+            match = np.all(EOS == eos, axis=1)
 
-            x = {input_type: self.X[input_type][match]
-                 for input_type in self.X}
-            y = {output_type: self.Y[output_type][match]
-                 for output_type in self.Y}
+            x = {input_type: X[input_type][match]
+                 for input_type in X}
+            y = {output_type: Y[output_type][match]
+                 for output_type in Y}
 
             # Return stars from matching eos and the number of stars
             yield x, y, np.sum(match)
@@ -116,12 +128,18 @@ class DataLoader:
             ]).T
 
         elif sample_type == 'small_noise':
-            x['nuisance-parameters'] += np.random.uniform(-.01, .01, size=(num_samples, 3))
+            x['nuisance-parameters'] = x['nuisance-parameters'] + np.random.uniform(-.1, .1, size=(num_samples, 3))
 
         elif sample_type == 'empirical':
             x['nuisance-parameters'] = np.stack([np.random.choice(self.X['nuisance-parameters'][:, 0], num_samples),
                                                  np.random.choice(self.X['nuisance-parameters'][:, 1], num_samples),
                                                  np.random.choice(self.X['nuisance-parameters'][:, 2], num_samples)]).T
+
+        elif sample_type == 'knn_spectra':
+            distances = np.sum(np.abs(self.X['spectra'] - x['spectra'][0]),
+                               axis=1)
+            idx = np.argsort(distances)[:num_samples]
+            x['nuisance-parameters'] = self.X['nuisance-parameters'][idx]
 
         return self.train_gen.scaler.transform(x, y)
 
@@ -135,66 +153,6 @@ class DataLoader:
         x['spectra'] = np.random.poisson(x['spectra'] * 100) / 100.
 
         return self.train_gen.scaler.transform(x, y)
-
-
-class DataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, X, Y, args, scaler=None):
-        self.X = X
-        self.Y = Y
-        self.args = args
-        self.scaler = None
-        self.batch_size = args['batch_size']
-
-        for k, v in X.items():
-            print(k, v.shape)
-        for k, v in Y.items():
-            print(k, v.shape)
-
-        if scaler is None:
-            scaler = ns.data_loader.ScalerManager(args, X, Y)
-        self.scaler = scaler
-
-    def load_all(self, transform=True):
-        x = self.X
-        y = self.Y
-        if self.scaler is not None and transform:
-            x, y = self.scaler.transform(x, y)
-
-        x = [x[opt['name']] for opt in self.args['inputs']]
-        y = [y[opt['name']] for opt in self.args['outputs']]
-        return x, y
-
-    def __len__(self):
-        return self.Y[list(self.Y.keys())[0]].shape[0] // self.batch_size
-
-    def __getitem__(self, idx):
-        x = {
-            input_type: self.X[input_type][idx:idx + self.batch_size]
-            for input_type in self.X
-        }
-        y = {
-            output_type: self.Y[output_type][idx:idx + self.batch_size]
-            for output_type in self.Y
-        }
-
-        return self.scaler.transform(x, y)
-
-    def to_dataframe(self, inputs=False):
-        y = [self.Y[opt['name']] for opt in self.args['outputs']]
-        columns = [c for c in self.args['output_columns']]
-
-        df = pd.DataFrame(data=np.concatenate(y, axis=-1), columns=columns)
-
-        if inputs:
-            x = np.concatenate([
-                self.X[opt['name']]
-                for opt in self.args['inputs']],
-                axis=-1
-            )
-            df_inputs = pd.DataFrame(data=x, columns=self.args['input_columns'])
-            df = pd.concat([df, df_inputs], axis=1)
-
-        return df
 
 
 if __name__ == '__main__':

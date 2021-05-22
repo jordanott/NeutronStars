@@ -54,7 +54,7 @@ if args['run_type'] == 'train':
             epochs=args['epochs'],
             validation_data=data_loader.validation_gen,
             callbacks=callbacks,
-            verbose=2 if args['sherpa'] else 1,
+            verbose=2 if args['sherpa'] else 0,
             workers=16,
             max_queue_size=10,
         ).history
@@ -87,7 +87,7 @@ elif args['run_type'] == 'sample':
     # LOAD MODEL
     model = tf.keras.models.load_model(args['model_dir'])
 
-    for sample_type in ['small_noise', 'poisson', 'empirical', 'uniform']:
+    for sample_type in ['knn_spectra', 'small_noise', 'poisson', 'empirical', 'uniform']:
 
         # :SINGLE OUTPUT ASSUMPTION:
         output_name = args['outputs'][0]['name']
@@ -99,7 +99,8 @@ elif args['run_type'] == 'sample':
         if sample_type == 'poisson':
             sample_fn = data_loader.sample_poisson_spectra
 
-        for x, y, num_stars in tqdm.tqdm(data_loader.group_by_eos(num_eos_to_sample), total=num_eos_to_sample):
+        for x, y, num_stars in tqdm.tqdm(data_loader.group_by_eos(num_samples=num_eos_to_sample),
+                                         total=num_eos_to_sample):
             for idx in range(num_stars):
 
                 x_sample, y_sample = sample_fn(x, y, idx,
@@ -132,10 +133,11 @@ elif args['run_type'] == 'sample':
 
 elif args['run_type'] == 'test':
     """
-    >>> tf2 main.py --run_type test --paradigm spectra+star2mr
+    tf2 main.py --run_type test --paradigm mr2eos \
+    --model_dir /baldig/physicstest/NeutronStarsData/SherpaResults/mr2eos/Models/00014 \
     """
     # LOAD MODEL FROM CROSS-VALIDATION
-    for model_dir in glob.iglob('/baldig/physicstest/NeutronStarsData/SherpaResults/spectra+star2mr/Models/00470'):
+    for model_dir in glob.iglob(args['model_dir']):
         if not os.path.exists(model_dir + '/saved_model.pb'):
             continue
 
@@ -148,12 +150,13 @@ elif args['run_type'] == 'test':
         args['fold'] = 1
         args['sherpa'] = True
         args['num_folds'] = 1
-        args['output_dir'] = 'Results/spectra+star2mr/' # /baldig/physicstest/NeutronStarsData/Sherpa
+        args['output_dir'] = 'Results/mr2eos/' # /baldig/physicstest/NeutronStarsData/Sherpa
 
         # BUILD THE DATA LOADER & PARTITION THE DATASET
         data_loader = ns.DataLoader(args)
 
-        model = tf.keras.models.load_model(model_dir)       # args['model_dir'])
+        model = tf.keras.models.load_model(model_dir)
+        model.summary()
 
         ns.utils.predict_scale_store(data_loader.train_gen, model, args, 'train')
         ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
