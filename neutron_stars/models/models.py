@@ -1,12 +1,7 @@
 import sherpa
 import tensorflow as tf
-
-
-AVAILABLE_ACTIVATIONS = {
-    'elu': tf.nn.elu,
-    'relu': tf.nn.relu,
-    'leaky_relu': tf.nn.leaky_relu,
-}
+from .transformer import Transformer
+from .common import AVAILABLE_ACTIVATIONS
 
 
 def create_callbacks(args):
@@ -83,7 +78,7 @@ def build_dense_branch(args, branch_input=None, input_opts=None):
     return branch_input, branch_outputs[-1]
 
 
-def build_model(args):
+def build_normal_model(args):
     model_inputs = []
     branch_outputs = []
 
@@ -105,3 +100,21 @@ def build_model(args):
 
     x = tf.keras.layers.Dense(args['output_size'], name=args['outputs'][0]['name'])(model_output)
     return tf.keras.models.Model(inputs=model_inputs, outputs=x)
+
+
+def build_model(args):
+    if args['model_type'] == 'transformer':
+        model_input = tf.keras.layers.Input(shape=(args['num_stars'], 2),
+                                            name='mass-radius')
+
+        output = Transformer(args)(model_input)
+        model_output = tf.keras.layers.Dense(2, name='coefficients')(output)
+
+        model = tf.keras.Model(inputs=model_input,
+                               outputs=model_output)
+    else:
+        # if args['model_type'] == 'transformer':
+        #     args['inputs'][0]['idxs'] = [0] * args['num_stars'] * 2
+        model = build_normal_model(args)
+
+    return model
