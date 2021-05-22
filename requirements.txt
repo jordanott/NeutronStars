@@ -1,0 +1,5 @@
+tensorflow==2.3.0
+pandas
+tqdm
+parameter_sherpa
+seaborn
