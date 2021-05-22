@@ -1,5 +1,5 @@
 """
->>> tf2 runner.py --paradigm spectra2eos
+tf2 runner.py --paradigm mr2eos --model_type transformer
 """
 
 import os
@@ -9,6 +9,7 @@ import itertools
 import neutron_stars as ns
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--model_type', default='normal')
 parser.add_argument('--gpus', default='0,1,2,3', type=str)
 parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
 parser.add_argument('--output_dir', default='/baldig/physicstest/NeutronStarsData/SherpaResults/')
@@ -20,25 +21,29 @@ os.makedirs(args.output_dir, exist_ok=True)
 
 parameters = [
     sherpa.Choice('mass_threshold', [3, 6]),
-
-    sherpa.Choice('augmentation', [1, 0]),
+    # sherpa.Choice('augmentation', [1, 0]),
     sherpa.Discrete('num_layers', [1, 12]),
-    sherpa.Discrete('num_nodes', [32, 1024]),
+    sherpa.Choice('num_nodes', list(range(32, 1025, 8))),
     sherpa.Choice('batch_norm', [0, 1]),
     sherpa.Continuous('dropout', [0, 1]),
     sherpa.Choice('skip_connections', [0, 1]),
-    sherpa.Continuous('lr', [0.00001, 0.01]),
+    sherpa.Continuous('lr', [0.0001, 0.01]),
     sherpa.Continuous('lr_decay', [0.8, 1.]),
     sherpa.Choice('activation', list(ns.models.AVAILABLE_ACTIVATIONS.keys())),
     sherpa.Choice('scaler_type', ns.data_loader.scaler_combinations_for_paradigm(args.paradigm)),
     sherpa.Choice('loss_function', ['mse', 'mean_absolute_percentage_error', 'huber']),
 ]
 
-if 'spectra' in args.paradigm:
+if 'spectra' in args.paradigm.split('2')[0]:
     parameters.append(
         sherpa.Choice('conv_branch', [0, 1])
     )
 
+if args.model_type == 'transformer':
+    parameters.extend([
+        sherpa.Discrete('num_stars', [1, 10]),
+        sherpa.Choice('transformer_op', ['max', 'min', 'sum']),
+    ])
 algorithm = sherpa.algorithms.RandomSearch(max_num_trials=1000)
 
 
@@ -50,7 +55,7 @@ scheduler = sherpa.schedulers.LocalScheduler(resources=resources)
 
 
 command = f"/home/jott1/tf2_env/bin/python main.py --sherpa --paradigm {args.paradigm} " \
-            f"--output_dir {args.output_dir}"
+            f"--output_dir {args.output_dir} --model_type {args.model_type}"
 
 sherpa.optimize(
     algorithm=algorithm,

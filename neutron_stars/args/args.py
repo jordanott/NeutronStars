@@ -7,7 +7,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='0', type=str)
     parser.add_argument('--sherpa', action='store_true')
-    parser.add_argument('--load_settings_from', default='')
 
     parser.add_argument('--epochs', default=500, type=int)
     parser.add_argument('--patience', default=25, type=int)
@@ -26,16 +25,23 @@ def parse_args():
     parser.add_argument('--loss_function', default='mse')
     parser.add_argument('--activation', default='relu', choices=ns.models.AVAILABLE_ACTIVATIONS)
 
-    parser.add_argument('--run_type', choices=['train', 'test', 'sample'], default='train')
-
+    # Directory and loading args
     parser.add_argument('--model_dir', default='')
+    parser.add_argument('--model_type', default='normal')
     parser.add_argument('--output_dir', default='Results/')
+    parser.add_argument('--load_settings_from', default='')
 
+    # Transformer args
+    parser.add_argument('--num_stars', default=4, type=int, help='Many stars -> one universe')
+    parser.add_argument('--transformer_op', default='max', help='Op at the end of transformer')
+
+    # Data args
     parser.add_argument('--mass_threshold', default=3, type=float)
     parser.add_argument('--num_coefficients', default=2, type=int)
     parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
-    parser.add_argument('--use_spectra_stats', action='store_true', help='Take mean of spectra over unique EOS')
+    parser.add_argument('--data_dir', default='/baldig/physicstest/NeutronStarsData/res_nonoise10x/')
     parser.add_argument('--scaler_type', default='standard2standard', help='Same format as paradigm: log+none2standard')
+    parser.add_argument('--run_type', choices=['train', 'test', 'sample'], default='train')
 
     args = vars(parser.parse_args())
 
