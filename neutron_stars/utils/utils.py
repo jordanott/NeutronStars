@@ -43,7 +43,8 @@ def gpu_settings(args={'gpu': '0'}):
 
 
 def dir_set_up(args):
-    args['output_dir'] = os.path.join(args['output_dir'], args['paradigm']) + '/'
+    extra = f"_{args['model_type']}".replace('_normal', '')
+    args['output_dir'] = os.path.join(args['output_dir'], args['paradigm'] + extra) + '/'
 
     if args['sherpa']:
         args['model_dir'] = args['output_dir'] + 'Models/%05d' % args['trial_id']

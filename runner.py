@@ -1,5 +1,5 @@
 """
-tf2 runner.py --paradigm mr2eos --model_type transformer
+tf2 runner.py --paradigm spectra+star2eos --model_type transformer
 """
 
 import os
@@ -21,7 +21,6 @@ os.makedirs(args.output_dir, exist_ok=True)
 
 parameters = [
     sherpa.Choice('mass_threshold', [3, 6]),
-    # sherpa.Choice('augmentation', [1, 0]),
     sherpa.Discrete('num_layers', [1, 12]),
     sherpa.Choice('num_nodes', list(range(32, 1025, 8))),
     sherpa.Choice('batch_norm', [0, 1]),
@@ -57,12 +56,10 @@ scheduler = sherpa.schedulers.LocalScheduler(resources=resources)
 command = f"/home/jott1/tf2_env/bin/python main.py --sherpa --paradigm {args.paradigm} " \
             f"--output_dir {args.output_dir} --model_type {args.model_type}"
 
-sherpa.optimize(
-    algorithm=algorithm,
-    scheduler=scheduler,
-    parameters=parameters,
-    lower_is_better=True,
-    command=command,
-    max_concurrent=args.max_concurrent,
-    output_dir=args.output_dir + args.paradigm
-)
+sherpa.optimize(algorithm=algorithm,
+                scheduler=scheduler,
+                parameters=parameters,
+                lower_is_better=True,
+                command=command,
+                max_concurrent=args.max_concurrent,
+                output_dir=args.output_dir + args.paradigm + f"_{args.model_type}".replace('_normal', ''))

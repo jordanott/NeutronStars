@@ -18,7 +18,8 @@ def create_callbacks(args):
         return lr * args['lr_decay']
 
     callbacks.extend([
-        tf.keras.callbacks.LearningRateScheduler(schedule),
+        tf.keras.callbacks.ReduceLROnPlateau(),
+        # tf.keras.callbacks.LearningRateScheduler(schedule),
         tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=args['patience']),
         tf.keras.callbacks.ModelCheckpoint(args['model_dir'], save_best_only=True),
     ])
@@ -104,17 +105,19 @@ def build_normal_model(args):
 
 def build_model(args):
     if args['model_type'] == 'transformer':
-        model_input = tf.keras.layers.Input(shape=(args['num_stars'], 2),
-                                            name='mass-radius')
+        spectra_input = tf.keras.layers.Input(shape=(args['num_stars'], 250),
+                                              name='spectra')
+        np_input = tf.keras.layers.Input(shape=(args['num_stars'], 3),
+                                         name='nuisance-parameter')
+
+        model_input = tf.keras.layers.concatenate([spectra_input, np_input])
 
         output = Transformer(args)(model_input)
         model_output = tf.keras.layers.Dense(2, name='coefficients')(output)
 
-        model = tf.keras.Model(inputs=model_input,
+        model = tf.keras.Model(inputs=[spectra_input, np_input],
                                outputs=model_output)
     else:
-        # if args['model_type'] == 'transformer':
-        #     args['inputs'][0]['idxs'] = [0] * args['num_stars'] * 2
         model = build_normal_model(args)
 
     return model
