@@ -146,7 +146,7 @@ elif args['run_type'] == 'test':
         args['fold'] = 1
         args['sherpa'] = True
         args['num_folds'] = 1
-        args['output_dir'] = 'Results/mr2eos/' # /baldig/physicstest/NeutronStarsData/Sherpa
+        args['output_dir'] = '/baldig/physicstest/NeutronStarsData/SherpaResults/spectra+star2eos_transformer/'
 
         # BUILD THE DATA LOADER & PARTITION THE DATASET
         data_loader = ns.DataLoader(args)
@@ -154,5 +154,5 @@ elif args['run_type'] == 'test':
         model = tf.keras.models.load_model(model_dir)
         model.summary()
 
-        ns.utils.predict_scale_store(data_loader.train_gen, model, args, 'train')
+        # ns.utils.predict_scale_store(data_loader.train_gen, model, args, 'train')
         ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
