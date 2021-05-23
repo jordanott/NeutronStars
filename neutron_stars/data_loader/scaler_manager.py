@@ -88,6 +88,7 @@ def scaler_combinations_for_paradigm(paradigm):
 
 class ScalerManager:
     def __init__(self, args, x, y):
+        self.args = args
         # SET INPUT AND TARGET SCALERS
         input_scalers, output_scalers = args['scaler_type'].split('2')
 
@@ -109,23 +110,37 @@ class ScalerManager:
             self.output_scalers[output_type].fit(y[output_type])
 
     def transform(self, x, y):
-        _x = {
-            input_type: self.input_scalers[input_type].transform(x[input_type])
-            for input_type in x
-        }
-        _y = {
-            output_type: self.output_scalers[output_type].transform(y[output_type])
-            for output_type in y
-        }
+        if self.args['model_type'] == 'transformer':
+            _x = {input_type: np.zeros_like(x[input_type])
+                  for input_type in x}
+
+            for input_type in x:
+                for bidx in range(self.args['batch_size']):
+                    _x[input_type][bidx] = self.input_scalers[input_type].transform(x[input_type][bidx])
+
+        else:
+            _x = {input_type: self.input_scalers[input_type].transform(x[input_type])
+                  for input_type in x}
+
+        _y = {output_type: self.output_scalers[output_type].transform(y[output_type])
+              for output_type in y}
+
         return _x, _y
     
     def inverse_transform(self, x, y):
-        _x = {
-            input_type: self.input_scalers[input_type].inverse_transform(x[input_type])
-            for input_type in x
-        }
-        _y = {
-            output_type: self.output_scalers[output_type].inverse_transform(y[output_type])
-            for output_type in y
-        }
+        if self.args['model_type'] == 'transformer':
+            _x = {input_type: np.zeros_like(x[input_type])
+                  for input_type in x}
+
+            for input_type in x:
+                for bidx in range(self.args['batch_size']):
+                    _x[input_type][bidx] = self.input_scalers[input_type].inverse_transform(x[input_type][bidx])
+
+        else:
+            _x = {input_type: self.input_scalers[input_type].inverse_transform(x[input_type])
+                  for input_type in x}
+
+        _y = {output_type: self.output_scalers[output_type].inverse_transform(y[output_type])
+              for output_type in y}
+
         return _x, _y

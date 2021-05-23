@@ -9,17 +9,22 @@ class BlankScaler:
 
 
 class ManyStarsGenerator(tf.keras.utils.Sequence):
-    def __init__(self, args, generator):
+    def __init__(self, args, generator, scaler):
         X = []
         Y = []
+        self.stars_per_eos = []
+
         for x, y, _ in generator:
+            key = list(x.keys())[0]
+            self.stars_per_eos.append(len(x[key]))
+
             X.append(x)
             Y.append(y)
 
         self.X = X
         self.Y = Y
         self.args = args
-        self.scaler = BlankScaler()
+        self.scaler = scaler
         self.num_stars = args['num_stars']
         self.batch_size = args['batch_size']
         self.seed = 1
@@ -31,45 +36,45 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
 
     def __len__(self):
         count = 0
-        for x in self.X:
-            count += len(x['mass-radius'])
+        for y in self.Y:
+            count += len(y['coefficients'])
         return count // self.batch_size
 
     def __getitem__(self, _):
-        batch_x = np.zeros((self.batch_size, self.num_stars, 2))
+        batch_x = {input_type: np.zeros((self.batch_size,
+                                         self.num_stars,
+                                         self.X[0][input_type].shape[-1]))
+                   for input_type in self.X[0]}
+
         batch_y = np.zeros((self.batch_size, 2))
-        eos_idxs = np.arange(len(self.X))
+        eos_idxs = np.arange(len(self.stars_per_eos))
 
         for bidx in range(self.batch_size):
             eos_idx = np.random.choice(eos_idxs)
-            x = self.X[eos_idx]['mass-radius']
+            x = self.X[eos_idx]
             y = self.Y[eos_idx]['coefficients']
 
-            star_idx = np.random.choice(np.arange(len(x)),
-                                        size=self.num_stars,
-                                        replace=False)
+            star_idx = np.random.randint(0, self.stars_per_eos[eos_idx],
+                                         size=self.num_stars)
 
-            batch_x[bidx] = np.expand_dims(x[star_idx], axis=0)
+            for input_type in x:
+                batch_x[input_type][bidx] = np.expand_dims(x[input_type][star_idx], axis=0)
+
             batch_y[bidx] = np.expand_dims(y[0], axis=0)
 
-        x = {'mass-radius': batch_x}    # .reshape(self.batch_size, -1)
-        y = {'coefficients': batch_y}
-
-        return x, y
+        return self.scaler.transform(batch_x, {'coefficients': batch_y})
 
     def load_all(self, transform=True):
         np.random.seed(123)
-        size = self.__len__()
-        all_x = np.zeros((size, self.num_stars, 2))
-        all_y = np.zeros((size, 2))
-        for i in range(0, size, self.batch_size):
-            batch_x, batch_y = self.__getitem__(i)
-            batch_size = all_x[i:i + self.batch_size].shape[0]
+        batch_size = self.batch_size
+        self.batch_size = len(self.X)
 
-            all_x[i:i + batch_size] = batch_x['mass-radius'][:batch_size]
-            all_y[i:i + batch_size] = batch_y['coefficients'][:batch_size]
+        x, y = self.__getitem__(None)
+        if not transform:
+            return self.scaler.inverse_transform(x, y)
 
-        return all_x, [all_y]
+        self.batch_size = batch_size
+        return x, y
 
 
 class DataGenerator(tf.keras.utils.Sequence):
@@ -85,8 +90,6 @@ class DataGenerator(tf.keras.utils.Sequence):
         for k, v in Y.items():
             print(k, v.shape)
 
-        if scaler is None:
-            scaler = ns.data_loader.ScalerManager(args, X, Y)
         self.scaler = scaler
 
     def load_all(self, transform=True):
@@ -103,14 +106,10 @@ class DataGenerator(tf.keras.utils.Sequence):
         return self.Y[list(self.Y.keys())[0]].shape[0] // self.batch_size
 
     def __getitem__(self, idx):
-        x = {
-            input_type: self.X[input_type][idx:idx + self.batch_size]
-            for input_type in self.X
-        }
-        y = {
-            output_type: self.Y[output_type][idx:idx + self.batch_size]
-            for output_type in self.Y
-        }
+        x = {input_type: self.X[input_type][idx:idx + self.batch_size]
+             for input_type in self.X}
+        y = {output_type: self.Y[output_type][idx:idx + self.batch_size]
+             for output_type in self.Y}
 
         return self.scaler.transform(x, y)
 

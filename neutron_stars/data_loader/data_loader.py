@@ -14,7 +14,7 @@ class DataLoader:
 
         # GET ALL FILES WITH CORRECT NUM OF EOS PARAMS
         files = [f for f in list(iglob(args['data_dir'] + '*.npz'))
-                 if f"{args['num_coefficients']}Param" in f]#[:10]
+                 if f"{args['num_coefficients']}Param" in f][:50]
 
         # if args['run_type'] == 'sample':
         # files = files[:25]
@@ -81,14 +81,18 @@ class DataLoader:
         y_test = {output_type: Y[output_type][val_idxs] for output_type in Y}
         eos_test = self.eos[val_idxs]
 
+        train_scaler = ns.data_loader.ScalerManager(args, x_train, y_train)
+
         if args['model_type'] == 'transformer':
-            self.train_gen = ManyStarsGenerator(args, self.group_by_eos(x_train, y_train, eos_train, 'all'))
-            self.validation_gen = ManyStarsGenerator(args, self.group_by_eos(x_test, y_test, eos_test, 'all'))
+            self.train_gen = ManyStarsGenerator(args, self.group_by_eos(x_train, y_train, eos_train, 'all'),
+                                                scaler=train_scaler)
+            self.validation_gen = ManyStarsGenerator(args, self.group_by_eos(x_test, y_test, eos_test, 'all'),
+                                                     scaler=train_scaler)
             print('Lengths:', len(self.train_gen), len(self.validation_gen))
         else:
-            self.train_gen = DataGenerator(x_train, y_train, args)
-            self.validation_gen = DataGenerator(x_test, y_test, args, self.train_gen.scaler)
-            self.all_gen = DataGenerator(self.X, self.Y, args, self.train_gen.scaler)
+            self.train_gen = DataGenerator(x_train, y_train, args, scaler=train_scaler)
+            self.validation_gen = DataGenerator(x_test, y_test, args, scaler=train_scaler)
+            self.all_gen = DataGenerator(self.X, self.Y, args, scaler=train_scaler)
 
     def group_by_eos(self, X=None, Y=None, EOS=None, num_samples=10):
         if X is None:
