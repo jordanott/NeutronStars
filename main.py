@@ -42,22 +42,18 @@ if args['run_type'] == 'train':
         tf.keras.utils.plot_model(model, args['model_dir'] + '/model.png', show_shapes=True)
 
         # COMPILE THE MODEL
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(lr=args['lr']),
-            loss=args['loss_function'],
-            metrics=['mean_absolute_percentage_error', 'mse']
-        )
+        model.compile(optimizer=tf.keras.optimizers.Adam(lr=args['lr']),
+                      loss=args['loss_function'],
+                      metrics=['mean_absolute_percentage_error', 'mse'])
 
         # TRAIN THE MODEL
-        history = model.fit(
-            x=data_loader.train_gen,
-            epochs=args['epochs'],
-            validation_data=data_loader.validation_gen,
-            callbacks=callbacks,
-            verbose=2 if args['sherpa'] else 0,
-            workers=16,
-            max_queue_size=10,
-        ).history
+        history = model.fit(x=data_loader.train_gen,
+                            epochs=args['epochs'],
+                            validation_data=data_loader.validation_gen,
+                            callbacks=callbacks,
+                            verbose=2 if args['sherpa'] else 1,
+                            workers=16,
+                            max_queue_size=10).history
 
         ns.utils.store_training_history(history, args)
 
