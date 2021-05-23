@@ -112,12 +112,12 @@ def predict_scale_store(generator, model, args, data_partition='test', save_inpu
     y_hat = model.predict(x, batch_size=args['batch_size'])
     x, y = generator.load_all(transform=False)
 
-    y = np.concatenate(y, axis=-1).squeeze()
     # :SINGLE OUTPUT ASSUMPTION:
     output_name = args['outputs'][0]['name']
     y_hat = {output_name: y_hat}
     _, y_hat = generator.scaler.inverse_transform({}, y_hat)
     y_hat = y_hat[output_name]
-
+    y = y[output_name]
+    
     # STORE INPUTS, TARGETS, PREDICTIONS
     store_predictions(x, y, y_hat, args, data_partition, save_inputs=save_inputs)

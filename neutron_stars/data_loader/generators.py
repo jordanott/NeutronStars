@@ -26,7 +26,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
         self.args = args
         self.scaler = scaler
         self.num_stars = args['num_stars']
-        self.batch_size = args['batch_size']
+        self.args['batch_size'] = args['batch_size']
         self.seed = 1
         np.random.seed(self.seed)
 
@@ -38,18 +38,18 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
         count = 0
         for y in self.Y:
             count += len(y['coefficients'])
-        return count // self.batch_size
+        return count // self.args['batch_size']
 
     def __getitem__(self, _):
-        batch_x = {input_type: np.zeros((self.batch_size,
+        batch_x = {input_type: np.zeros((self.args['batch_size'],
                                          self.num_stars,
                                          self.X[0][input_type].shape[-1]))
                    for input_type in self.X[0]}
 
-        batch_y = np.zeros((self.batch_size, 2))
+        batch_y = np.zeros((self.args['batch_size'], 2))
         eos_idxs = np.arange(len(self.stars_per_eos))
 
-        for bidx in range(self.batch_size):
+        for bidx in range(self.args['batch_size']):
             eos_idx = np.random.choice(eos_idxs)
             x = self.X[eos_idx]
             y = self.Y[eos_idx]['coefficients']
@@ -66,14 +66,14 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
 
     def load_all(self, transform=True):
         np.random.seed(123)
-        batch_size = self.batch_size
-        self.batch_size = len(self.X)
+        batch_size = self.args['batch_size']
+        self.args['batch_size'] = len(self.X)
 
         x, y = self.__getitem__(None)
         if not transform:
             return self.scaler.inverse_transform(x, y)
 
-        self.batch_size = batch_size
+        self.args['batch_size'] = batch_size
         return x, y
 
 
@@ -98,8 +98,9 @@ class DataGenerator(tf.keras.utils.Sequence):
         if self.scaler is not None and transform:
             x, y = self.scaler.transform(x, y)
 
-        x = [x[opt['name']] for opt in self.args['inputs']]
-        y = [y[opt['name']] for opt in self.args['outputs']]
+        # Commented out to match with Multi-Star Generator above
+        # x = [x[opt['name']] for opt in self.args['inputs']]
+        # y = [y[opt['name']] for opt in self.args['outputs']]
         return x, y
 
     def __len__(self):

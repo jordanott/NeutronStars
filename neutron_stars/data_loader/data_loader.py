@@ -14,7 +14,7 @@ class DataLoader:
 
         # GET ALL FILES WITH CORRECT NUM OF EOS PARAMS
         files = [f for f in list(iglob(args['data_dir'] + '*.npz'))
-                 if f"{args['num_coefficients']}Param" in f][:50]
+                 if f"{args['num_coefficients']}Param" in f]
 
         # if args['run_type'] == 'sample':
         # files = files[:25]
