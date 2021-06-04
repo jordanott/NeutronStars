@@ -16,7 +16,7 @@ ns_env -m pip install -U pip
 ns_env -m pip install -r requirements.txt
 
 # Installs the neutron stars pip package I've created
-ns_env -m pip install -e .
+ns_env -m pip install -Ue .
 ```
 
 ## 1) Make predictions on a large batch of files
@@ -83,10 +83,16 @@ plt.plot(np.maximum(pred_spectra[idxs].T, 0))
 import neutron_stars as ns
 import matplotlib.pyplot as plt
 
-ns_predictor = ns.Predictor()
-spectra = ns_predictor(mass=2.581471, radius=12.089365,
-                       nH=0.013734, logTeff=6.273879, dist=6.011103)
+spectra_generator = ns.SpectraGenerator()
+spectra = spectra_generator(mass=2.581471, radius=12.089365,
+                            nH=0.013734, logTeff=6.273879, dist=6.011103)
 
 plt.plot(spectra.T)
 plt.savefig('example_generated_spectra.png')
+```
+
+## [ONNX Conversion](https://github.com/onnx/tensorflow-onnx)
+This is a reference for myself, others can ignore it
+```bash
+tf2 -m tf2onnx.convert --saved-model tensorflow-model-path --output model.onnx
 ```
