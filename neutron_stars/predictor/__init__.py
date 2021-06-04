@@ -1,1 +1,1 @@
-from .predictor import Predictor
+from .spectra_generator import SpectraGenerator
