@@ -5,6 +5,7 @@ import neutron_stars as ns
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--name', default='')
     parser.add_argument('--gpu', default='0', type=str)
     parser.add_argument('--sherpa', action='store_true')
 
