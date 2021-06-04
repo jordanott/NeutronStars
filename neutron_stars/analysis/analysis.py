@@ -29,12 +29,13 @@ def cross_validation(path):
     return pd.concat(dfs)
 
 
-def calculate_hp_trial_errors(paradigm, metric_type='mape', num_files=500, base_path='/baldig/physicstest/NeutronStarsData/SherpaResults/{paradigm}/Predictions/validation_*.csv'):
+def calculate_hp_trial_errors(paradigm, metric_type='mape', num_files=500, num_coefficients=2,
+                              base_path='/baldig/physicstest/NeutronStarsData/SherpaResults/{paradigm}/Predictions/validation_*.csv'):
     error_dict = {}
     path = base_path.format(paradigm=paradigm)
     validation_files = list(iglob(path))[:num_files]
     metric = ns.analysis.AVAILABLE_METRICS[metric_type]()
-    target_names, pred_names = get_named_target_for_paradigm(paradigm)
+    target_names, pred_names = get_named_target_for_paradigm(paradigm, num_coefficients)
 
     for val_file in tqdm(validation_files):
         trial_id = int(val_file.replace('_01.csv', '')[-5:])
