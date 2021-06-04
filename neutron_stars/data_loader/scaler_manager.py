@@ -71,6 +71,8 @@ def scaler_combinations_for_paradigm(paradigm):
     num_outputs = len(paradigm.split('2')[1].split('+'))
 
     for i in range(num_inputs+num_outputs):
+        if i >= num_inputs:
+            scaler_types = ['none']
         all_scalers.append(scaler_types)
 
     all_combos = list(itertools.product(

@@ -46,7 +46,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
                                          self.X[0][input_type].shape[-1]))
                    for input_type in self.X[0]}
 
-        batch_y = np.zeros((self.args['batch_size'], 2))
+        batch_y = np.zeros((self.args['batch_size'], self.args['num_coefficients']))
         eos_idxs = np.arange(len(self.stars_per_eos))
 
         for bidx in range(self.args['batch_size']):

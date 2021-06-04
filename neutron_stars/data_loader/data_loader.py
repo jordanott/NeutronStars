@@ -16,8 +16,8 @@ class DataLoader:
         files = [f for f in list(iglob(args['data_dir'] + '*.npz'))
                  if f"{args['num_coefficients']}Param" in f]
 
-        # if args['run_type'] == 'sample':
-        # files = files[:25]
+        # if args['num_coefficients'] == 4:
+        #     files = files[:20]
 
         # INIT PLACEHOLDERS FOR DATA DICTIONARY
         X = {opts['name']: np.zeros((0, len(opts['idxs'])))
@@ -51,7 +51,7 @@ class DataLoader:
 
             self.eos = np.concatenate([self.eos, np_file['coefficients'][mass_threshold]])
 
-        if 'spectra' in X:
+        if 'spectra' in X and args['num_coefficients'] == 2:
             X['spectra'] *= 10000.
 
         num_samples = len(X[list(X.keys())[0]])
