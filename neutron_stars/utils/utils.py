@@ -43,7 +43,7 @@ def gpu_settings(args={'gpu': '0'}):
 
 
 def dir_set_up(args):
-    extra = f"_{args['model_type']}".replace('_normal', '')
+    extra = f"_{args['model_type']}".replace('_normal', '') + args['name']
     args['output_dir'] = os.path.join(args['output_dir'], args['paradigm'] + extra) + '/'
 
     if args['sherpa']:
@@ -91,7 +91,7 @@ def store_predictions(x, y, predictions, args, data_partition='test', save_input
         columns = [f'pred_{c}' for c in args['output_columns']]
 
     y_df = pd.DataFrame(data=y, columns=args['output_columns'])
-    p_df = pd.DataFrame(data=predictions, columns=columns)
+    p_df = pd.DataFrame(data=predictions.squeeze(), columns=columns)
     data_frames = [y_df, p_df]
 
     if save_inputs:
