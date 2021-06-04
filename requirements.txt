@@ -4,3 +4,5 @@ tqdm
 parameter_sherpa
 seaborn
 joblib
+tf2onnx
+onnxruntime
