@@ -128,14 +128,18 @@ class Transformer(tf.keras.Model):
         self.transformer = tf.keras.models.Sequential([TransformerBlock(args)
                                                        for _ in range(args['num_layers'])])
 
-        self.op = {'max': tf.reduce_max,
-                   'min': tf.reduce_min,
-                   'sum': tf.reduce_sum}[args['transformer_op']]
+        self.op = {'gather': None,
+                   'max': tf.reduce_max,
+                   'min': tf.reduce_min}[args['transformer_op']]
 
     def call(self, x):
         e = self.input_embedding(x)
         x = self.transformer(e)
-        x = self.op(x, axis=1)
+
+        if self.op is None:
+            x = tf.gather(x, [0], axis=1)
+        else:
+            x = self.op(x, axis=1)
 
         return x
 

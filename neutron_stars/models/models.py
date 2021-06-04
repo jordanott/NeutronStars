@@ -2,6 +2,25 @@ import sherpa
 import tensorflow as tf
 from .transformer import Transformer
 from .common import AVAILABLE_ACTIVATIONS
+from .custom import CosineDecayRestarts
+
+
+class EarlyStoppingByValue(tf.keras.callbacks.Callback):
+    def __init__(self, monitor='val_mean_absolute_percentage_error', value=2.4):
+        super(tf.keras.callbacks.Callback, self).__init__()
+        self.monitor = monitor
+        self.value = value
+
+    def on_epoch_end(self, epoch, logs={}):
+        current = logs.get(self.monitor)
+
+        if (current > 2*self.value) and epoch == 1:
+            print("Epoch %05d: early stopping by value" % epoch)
+            self.model.stop_training = True
+
+        if current > self.value and epoch == 5:
+            print("Epoch %05d: early stopping by value" % epoch)
+            self.model.stop_training = True
 
 
 def create_callbacks(args):
@@ -18,11 +37,13 @@ def create_callbacks(args):
         return lr * args['lr_decay']
 
     callbacks.extend([
-        tf.keras.callbacks.ReduceLROnPlateau(),
-        # tf.keras.callbacks.LearningRateScheduler(schedule),
+        tf.keras.callbacks.LearningRateScheduler(CosineDecayRestarts(args['lr'], first_decay_steps=1000), verbose=1),
+        EarlyStoppingByValue(value=3 if args['num_coefficients'] == 4 else 2.5),
+        # tf.keras.callbacks.ReduceLROnPlateau(factor=args['lr_decay']),
         tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=args['patience']),
         tf.keras.callbacks.ModelCheckpoint(args['model_dir'], save_best_only=True),
     ])
+
     return callbacks
 
 
@@ -107,15 +128,15 @@ def build_model(args):
     if args['model_type'] == 'transformer':
         spectra_input = tf.keras.layers.Input(shape=(args['num_stars'], 250),
                                               name='spectra')
-        np_input = tf.keras.layers.Input(shape=(args['num_stars'], 3),
-                                         name='nuisance-parameter')
+        # np_input = tf.keras.layers.Input(shape=(args['num_stars'], 3),
+        #                                  name='nuisance-parameter')
 
-        model_input = tf.keras.layers.concatenate([spectra_input, np_input])
+        # model_input = tf.keras.layers.concatenate([spectra_input, np_input])
 
-        output = Transformer(args)(model_input)
-        model_output = tf.keras.layers.Dense(2, name='coefficients')(output)
+        output = Transformer(args)(spectra_input)
+        model_output = tf.keras.layers.Dense(args['num_coefficients'], name='coefficients')(output)
 
-        model = tf.keras.Model(inputs=[spectra_input, np_input],
+        model = tf.keras.Model(inputs=spectra_input,
                                outputs=model_output)
     else:
         model = build_normal_model(args)
