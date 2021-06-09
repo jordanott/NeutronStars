@@ -1,1 +1,2 @@
 from .cosine_decay_restarts import CosineDecayRestarts
+from .eos_coefficient_metric import eos_m1_metric, eos_m2_metric

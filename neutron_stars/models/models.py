@@ -14,23 +14,24 @@ class EarlyStoppingByValue(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         current = logs.get(self.monitor)
 
-        if (current > 2*self.value) and epoch == 1:
+        if (current > 4*self.value) and epoch == 1:
             print("Epoch %05d: early stopping by value" % epoch)
             self.model.stop_training = True
 
-        if current > self.value and epoch == 5:
+        if current > self.value and epoch == 10:
             print("Epoch %05d: early stopping by value" % epoch)
             self.model.stop_training = True
 
 
-def create_callbacks(args):
+def create_callbacks(args, monitor='val_loss'):
     callbacks = []
     if args['sherpa']:
         client, trial = args['sherpa_info']
         sherpa_callback = client.keras_send_metrics(trial,
                                                     objective_name='val_loss',
                                                     context_names=['loss', 'val_loss', 'mean_absolute_percentage_error',
-                                                                   'val_mean_absolute_percentage_error'])
+                                                                   'val_mean_absolute_percentage_error',
+                                                                   'val_eos_m1_metric', 'val_eos_m2_metric'])
         callbacks.append(sherpa_callback)
 
     def schedule(epoch, lr):
@@ -38,11 +39,14 @@ def create_callbacks(args):
 
     callbacks.extend([
         tf.keras.callbacks.LearningRateScheduler(CosineDecayRestarts(args['lr'], first_decay_steps=1000), verbose=1),
-        EarlyStoppingByValue(value=3 if args['num_coefficients'] == 4 else 2.5),
         # tf.keras.callbacks.ReduceLROnPlateau(factor=args['lr_decay']),
-        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=args['patience']),
+        tf.keras.callbacks.EarlyStopping(monitor=monitor, patience=args['patience']),
         tf.keras.callbacks.ModelCheckpoint(args['model_dir'], save_best_only=True),
     ])
+    
+    if '2none' in args['scaler_type']:
+        callbacks.append(EarlyStoppingByValue(value=3 if args['num_coefficients'] == 4 else 2.5,
+                                              monitor=monitor))
 
     return callbacks
 
