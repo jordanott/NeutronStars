@@ -14,6 +14,8 @@ import neutron_stars as ns
 # GET COMMAND LINE ARGS
 args = ns.parse_args()
 
+args['dropout'] = 0
+
 # SET UP THE DIRECTORY TO STORE RESULTS
 ns.utils.dir_set_up(args)
 
@@ -35,7 +37,7 @@ if args['run_type'] == 'train':
         data_loader = ns.DataLoader(args)
 
         # GET tf.keras CALLBACKS
-        callbacks = ns.models.create_callbacks(args)
+        callbacks = ns.models.create_callbacks(args, monitor='loss')
         # BUILD MODEL ARCHITECTURE BASED ON ARGS
         model = ns.models.build_model(args)
         # PLOT MODEL
@@ -44,7 +46,9 @@ if args['run_type'] == 'train':
         # COMPILE THE MODEL
         model.compile(optimizer=tf.keras.optimizers.Adam(lr=args['lr']),
                       loss=args['loss_function'],
-                      metrics=['mean_absolute_percentage_error', 'mse'])
+                      metrics=['mean_absolute_percentage_error', 'mse',
+                               ns.models.custom.eos_m1_metric,
+                               ns.models.custom.eos_m2_metric])
 
         # TRAIN THE MODEL
         history = model.fit(x=data_loader.train_gen,
@@ -58,7 +62,9 @@ if args['run_type'] == 'train':
         ns.utils.store_training_history(history, args)
 
         # LOAD THE BEST NETWORK FROM EARLY STOPPING
-        model = tf.keras.models.load_model(args['model_dir'])
+        model = tf.keras.models.load_model(args['model_dir'],
+                                           custom_objects={'eos_m1_metric': ns.models.custom.eos_m1_metric,
+                                                           'eos_m2_metric': ns.models.custom.eos_m1_metric})
 
         ns.utils.predict_scale_store(data_loader.validation_gen, model, args, 'validation')
         # if args['sherpa']:

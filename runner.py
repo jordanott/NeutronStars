@@ -23,7 +23,7 @@ os.makedirs(args.output_dir, exist_ok=True)
 parameters = [
     sherpa.Choice('mass_threshold', [6]),
     sherpa.Discrete('num_layers', [1, 12]),
-    sherpa.Choice('num_nodes', list(range(32, 1025, 8))),
+    sherpa.Choice('num_nodes', list(range(64, 2049, 64))),
     sherpa.Choice('batch_norm', [0, 1]),
     sherpa.Continuous('dropout', [0, 1]),
     sherpa.Choice('skip_connections', [0, 1]),
@@ -59,7 +59,7 @@ command = f"/home/jott1/tf2_env/bin/python main.py " \
           f"--model_type {args.model_type} " \
           f"--name {args.name} " \
           f"--data_dir /baldig/physicstest/NeutronStarsData/res_nonoise10x/ " \
-          f"--batch_size 2048"
+          f"--batch_size 1024"
 
 sherpa.optimize(algorithm=algorithm,
                 scheduler=scheduler,
