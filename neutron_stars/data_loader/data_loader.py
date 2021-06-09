@@ -18,6 +18,8 @@ class DataLoader:
 
         # if args['num_coefficients'] == 4:
         #     files = files[:20]
+        if args['batch_norm']:
+            files = files[:50]
 
         # INIT PLACEHOLDERS FOR DATA DICTIONARY
         X = {opts['name']: np.zeros((0, len(opts['idxs'])))
