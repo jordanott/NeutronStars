@@ -4,8 +4,8 @@ import onnxruntime as rt
 
 class RRegressor:
     def __init__(self):
-        self.scaler_mean_ = np.array([ 4.98637894, -1.95408965,  1.96591633])
-        self.scaler_scale_ = np.array([0.14018517, 0.05556016, 0.50481213])
+        self.scaler_mean_ = np.array([ 4.98636989, -1.95408323,  1.9656553 ])
+        self.scaler_scale_ = np.array([0.14012709, 0.055574  , 0.50454881])
 
         self.sess_options = rt.SessionOptions()
         self.sess_options.inter_op_num_threads = 1
