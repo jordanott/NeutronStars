@@ -43,12 +43,15 @@ if args['run_type'] == 'train':
         # PLOT MODEL
         tf.keras.utils.plot_model(model, args['model_dir'] + '/model.png', show_shapes=True)
 
+        metrics = ['mean_absolute_percentage_error', 'mse']
+        if 'eos' in args['paradigm']:
+            metrics.extend([ns.models.custom.eos_m1_metric,
+                            ns.models.custom.eos_m2_metric])
+
         # COMPILE THE MODEL
         model.compile(optimizer=tf.keras.optimizers.Adam(lr=args['lr']),
                       loss=args['loss_function'],
-                      metrics=['mean_absolute_percentage_error', 'mse',
-                               ns.models.custom.eos_m1_metric,
-                               ns.models.custom.eos_m2_metric])
+                      metrics=metrics)
 
         # TRAIN THE MODEL
         history = model.fit(x=data_loader.train_gen,
