@@ -15,7 +15,6 @@ class RRegressor:
         
         self.onnx_input_name = self.session.get_inputs()[0].name
 
-
     def __call__(self, poi_m, mass):
         m_M = np.concatenate([poi_m, mass.reshape(-1,1)], axis=1)
         m_M = (m_M - self.scaler_mean_)/self.scaler_scale_
