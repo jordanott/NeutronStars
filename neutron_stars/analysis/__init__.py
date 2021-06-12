@@ -1,2 +1,2 @@
 from .analysis import *
-from .metrics import AVAILABLE_METRICS
+from .metrics import *
