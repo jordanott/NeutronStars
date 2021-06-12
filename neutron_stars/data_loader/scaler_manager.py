@@ -14,6 +14,20 @@ class Scaler:
         pass
 
 
+class ZeroMean(Scaler):
+    def __init__(self):
+        self.mean = None
+
+    def fit(self, x):
+        self.mean = np.mean(x, axis=0)
+
+    def transform(self, x):
+        return x - self.mean
+
+    def inverse_transform(self, x):
+        return x + self.mean
+
+
 class LogScaler(Scaler):
     @staticmethod
     def transform(x):
@@ -53,10 +67,11 @@ class ExpScaler(Scaler):
 
 
 SCALER_TYPES = {
-    'log': LogScaler,
+    'zero_mean': ZeroMean,
+    # 'log': LogScaler,
     # 'exp': ExpScaler,
     'none': NoneScaler,
-    'minmax': MinMaxScaler,
+    # 'minmax': MinMaxScaler,
     'standard': StandardScaler,
 }
 
@@ -71,8 +86,8 @@ def scaler_combinations_for_paradigm(paradigm):
     num_outputs = len(paradigm.split('2')[1].split('+'))
 
     for i in range(num_inputs+num_outputs):
-        # if i >= num_inputs:
-        #     scaler_types = ['none']
+        if i >= num_inputs:
+            scaler_types = ['zero_mean']
         all_scalers.append(scaler_types)
 
     all_combos = list(itertools.product(
