@@ -51,11 +51,15 @@ def create_callbacks(args, monitor='val_loss'):
     return callbacks
 
 
-def build_conv_branch(args, input_opts):
+def build_conv_branch(args, input_opts, branch_input=None, pooling=True):
     input_size = len(input_opts['idxs'])
     activation = AVAILABLE_ACTIVATIONS[args['activation']]
 
-    branch_input = x = tf.keras.layers.Input(shape=(input_size,), name=input_opts['name'])
+    if branch_input is None:
+        branch_input = x = tf.keras.layers.Input(shape=(input_size,), name=input_opts['name'])
+    else:
+        x = branch_input
+
     x = tf.keras.layers.Reshape((input_size, 1))(x)
 
     for layer_id in range(args['num_layers']):
@@ -67,7 +71,7 @@ def build_conv_branch(args, input_opts):
         )(x)
         x = activation(x)
 
-        if (layer_id + 1) % 3 == 0:
+        if (layer_id + 1) % 3 == 0 and pooling:
             x = tf.keras.layers.MaxPool1D()(x)
         if args['batch_norm']:
             x = tf.keras.layers.BatchNormalization()(x)
@@ -122,9 +126,13 @@ def build_normal_model(args):
     else:
         branch_outputs = branch_outputs[0]
 
-    _, model_output = build_dense_branch(args, branch_input=branch_outputs)
+    if args['outputs'][0]['name'] == 'spectra' and args['conv_branch']:
+        x = tf.keras.layers.Dense(args['output_size'], activation='relu')(branch_outputs)
+        _, model_output = build_conv_branch(args, branch_input=x)
+    else:
+        _, model_output = build_dense_branch(args, branch_input=branch_outputs)
+        x = tf.keras.layers.Dense(args['output_size'], name=args['outputs'][0]['name'])(model_output)
 
-    x = tf.keras.layers.Dense(args['output_size'], name=args['outputs'][0]['name'])(model_output)
     return tf.keras.models.Model(inputs=model_inputs, outputs=x)
 
 
