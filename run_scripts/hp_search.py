@@ -8,9 +8,9 @@ tf2 run_scripts/hp_search.py --paradigm spectra2m_2 --model_type transformer --m
 
 # Redo Spectra Generator with conv and relu output
 # Test edits in models/models.py
-tf2 main.py --paradigm mr+stars2spectra --conv_branch --scaler_type none+none2none
+tf2 main.py --paradigm mr+star2spectra --conv_branch --scaler_type none+none2none
 # Then run
-tf2 run_scripts/hp_search.py --paradigm mr+star2spectra --max_concurrent 16 --name _v2
+tf2 run_scripts/hp_search.py --paradigm mr+star2spectra --max_concurrent 10 --gpus 2,3 --name _v2
 """
 
 import os
@@ -48,9 +48,7 @@ if args.model_type == 'transformer':
                        sherpa.Choice('transformer_op', ['max', 'min', 'gather'])])
 
 elif 'spectra' in args.paradigm:
-    parameters.append(
-        sherpa.Choice('conv_branch', [0, 1])
-    )
+    parameters.append(sherpa.Choice('conv_branch', [0, 1]))
 
 algorithm = sherpa.algorithms.RandomSearch(max_num_trials=1000)
 
@@ -68,7 +66,7 @@ command = f"/home/jott1/tf2_env/bin/python main.py " \
           f"--model_type {args.model_type} " \
           f"--name {args.name} " \
           f"--data_dir /baldig/physicstest/NeutronStarsData/res_nonoise10x/ " \
-          f"--batch_size 1024"
+          f"--batch_size 256"
 
 sherpa.optimize(algorithm=algorithm,
                 scheduler=scheduler,
