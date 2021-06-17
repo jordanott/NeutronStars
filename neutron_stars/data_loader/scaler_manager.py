@@ -15,8 +15,8 @@ class Scaler:
 
 
 class ZeroMean(Scaler):
-    def __init__(self):
-        self.mean = None
+    def __init__(self, mean=None):
+        self.mean = mean
 
     def fit(self, x):
         self.mean = np.mean(x, axis=0)
@@ -68,7 +68,7 @@ class ExpScaler(Scaler):
 
 SCALER_TYPES = {
     'zero_mean': ZeroMean,
-    # 'log': LogScaler,
+    'log': LogScaler,
     # 'exp': ExpScaler,
     'none': NoneScaler,
     # 'minmax': MinMaxScaler,
@@ -78,15 +78,15 @@ SCALER_TYPES = {
 
 def scaler_combinations_for_paradigm(paradigm):
     all_scalers = []
-    if 'eos' in paradigm:
-        del SCALER_TYPES['log']
+    # if 'eos' in paradigm:
+    #     del SCALER_TYPES['log']
 
     scaler_types = list(SCALER_TYPES.keys())
     num_inputs = len(paradigm.split('2')[0].split('+'))
     num_outputs = len(paradigm.split('2')[1].split('+'))
 
     for i in range(num_inputs+num_outputs):
-        if i >= num_inputs:
+        if i >= num_inputs and '2eos' in paradigm:
             scaler_types = ['zero_mean']
         all_scalers.append(scaler_types)
 

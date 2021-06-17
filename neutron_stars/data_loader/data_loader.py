@@ -16,10 +16,8 @@ class DataLoader:
         files = [f for f in list(iglob(args['data_dir'] + '*.npz'))
                  if f"{args['num_coefficients']}Param" in f]
 
-        # if args['num_coefficients'] == 4:
-        #     files = files[:20]
-        if args['batch_norm']:
-            files = files[:50]
+        if args['lr'] == 4:
+            files = files[:15]
 
         # INIT PLACEHOLDERS FOR DATA DICTIONARY
         X = {opts['name']: np.zeros((0, len(opts['idxs'])))
