@@ -14,8 +14,6 @@ import neutron_stars as ns
 # GET COMMAND LINE ARGS
 args = ns.parse_args()
 
-args['dropout'] = 0
-
 # SET UP THE DIRECTORY TO STORE RESULTS
 ns.utils.dir_set_up(args)
 
@@ -44,7 +42,7 @@ if args['run_type'] == 'train':
         tf.keras.utils.plot_model(model, args['model_dir'] + '/model.png', show_shapes=True)
 
         metrics = ['mean_absolute_percentage_error', 'mse']
-        if 'eos' in args['paradigm']:
+        if '2eos' in args['paradigm']:
             metrics.extend([ns.models.custom.eos_m1_metric,
                             ns.models.custom.eos_m2_metric])
 
