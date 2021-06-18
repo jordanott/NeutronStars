@@ -5,6 +5,10 @@
 ```bash
 git clone https://github.com/jordanott/NeutronStars.git
 
+# You'll need to download the onnx file from here: 
+# https://drive.google.com/file/d/1vcOBmjZ4knSJUayr4zb6uoC5Z2HLnBwK/view?usp=sharing
+mv ~/Downloads/model.onnx NeutronStars/SavedModels/mr+star2spectra/00069/
+
 # Create a python virtual environment (Optional)
 python3 -m venv neutron_stars_env
 alias ns_env=neutron_stars_env/bin/python
