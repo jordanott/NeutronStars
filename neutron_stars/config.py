@@ -1,7 +1,8 @@
 import numpy as np
 
 DATA_DIR = '/baldig/physicstest/NeutronStarsData/res_nonoise10x/'
-PARADIGMS = ['spectra2m_2', 'spectra+star2eos', 'spectra+star2mr', 'spectra2eos', 'spectra2mr',
+PARADIGMS = ['spectra2m-one', 'spectra2m-two',
+             'spectra+star2eos', 'spectra+star2mr', 'spectra2eos', 'spectra2mr',
              'mr2eos', 'mr+star2spectra']
 
 
@@ -31,9 +32,15 @@ def get_paradigm_opts(num_coefficients=2):
             'idxs': np.arange(num_coefficients),
             'columns': [f'c{c}' for c in range(1, num_coefficients+1)],
         },
-        'm_2': {
+        'm-one': {
             'key': 'coefficients',
-            'name': 'm_2',
+            'name': 'm-one',
+            'idxs': np.array([0]),
+            'columns': ['c1'],
+        },
+        'm-two': {
+            'key': 'coefficients',
+            'name': 'm-two',
             'idxs': np.array([1]),
             'columns': ['c2'],
         }
