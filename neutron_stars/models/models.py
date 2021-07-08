@@ -39,13 +39,15 @@ def create_callbacks(args, monitor='val_loss'):
         callbacks.append(sherpa_callback)
 
     callbacks.extend([
+        tf.keras.callbacks.TerminateOnNaN(),
         tf.keras.callbacks.LearningRateScheduler(CosineDecayRestarts(args['lr'], first_decay_steps=1000), verbose=1),
         # tf.keras.callbacks.ReduceLROnPlateau(factor=args['lr_decay']),
         tf.keras.callbacks.EarlyStopping(monitor=monitor, patience=args['patience']),
         tf.keras.callbacks.ModelCheckpoint(args['model_dir'], save_best_only=True),
     ])
     
-    if '2none' in args['scaler_type'] and '2eos' in args['paradigm']:
+    if '2none' in args['scaler_type'] and \
+            ('2eos' in args['paradigm'] or 'm-one' in args['paradigm'] or 'm-two' in args['paradigm']):
         callbacks.append(EarlyStoppingByValue(value=3 if args['num_coefficients'] == 4 else 2.5,
                                               monitor=monitor))
 
@@ -157,7 +159,8 @@ def build_model(args):
         # model_input = tf.keras.layers.concatenate([spectra_input, np_input])
 
         output = Transformer(args)(spectra_input)
-        model_output = tf.keras.layers.Dense(args['num_coefficients'], name='coefficients')(output)
+        model_output = tf.keras.layers.Dense(args['num_coefficients'],
+                                             name=args['outputs'][0]['name'])(output)
 
         model = tf.keras.Model(inputs=spectra_input,
                                outputs=model_output)
