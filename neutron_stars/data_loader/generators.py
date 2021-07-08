@@ -30,6 +30,10 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
         self.seed = 1
         np.random.seed(self.seed)
 
+        self.output_name = args['outputs'][0]['name']
+        if self.output_name != 'coefficients':
+            self.args['num_coefficients'] = 1
+
     def on_epoch_end(self):
         self.seed += 1
         np.random.seed(self.seed)
@@ -37,7 +41,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
     def __len__(self):
         count = 0
         for y in self.Y:
-            count += len(y['coefficients'])
+            count += len(y[self.output_name])
         return count // self.args['batch_size']
 
     def __getitem__(self, _):
@@ -52,7 +56,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
         for bidx in range(self.args['batch_size']):
             eos_idx = np.random.choice(eos_idxs)
             x = self.X[eos_idx]
-            y = self.Y[eos_idx]['coefficients']
+            y = self.Y[eos_idx][self.output_name]
 
             star_idx = np.random.randint(0, self.stars_per_eos[eos_idx],
                                          size=self.num_stars)
@@ -62,7 +66,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
 
             batch_y[bidx] = np.expand_dims(y[0], axis=0)
 
-        return self.scaler.transform(batch_x, {'coefficients': batch_y})
+        return self.scaler.transform(batch_x, {self.output_name: batch_y})
 
     def load_all(self, transform=True):
         np.random.seed(123)
