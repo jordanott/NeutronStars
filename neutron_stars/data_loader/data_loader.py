@@ -9,15 +9,18 @@ from sklearn.model_selection import KFold
 
 
 class DataLoader:
-    def __init__(self, args):
+    def __init__(self, args, small=False):
         self.args = args
 
         # GET ALL FILES WITH CORRECT NUM OF EOS PARAMS
         files = [f for f in list(iglob(args['data_dir'] + '*.npz'))
                  if f"{args['num_coefficients']}Param" in f]
 
-        if args['lr'] == 4:
-            files = files[:15]
+        # files += [f for f in list(iglob('/baldig/physicstest/NeutronStarsData/res/*.npz'))
+        #           if f"{args['num_coefficients']}Param" in f]
+
+        if small:
+            files = files[:10]
 
         # INIT PLACEHOLDERS FOR DATA DICTIONARY
         X = {opts['name']: np.zeros((0, len(opts['idxs'])))
@@ -38,6 +41,9 @@ class DataLoader:
                 new_sample = input_file_sample[:, input_opt['idxs']]
                 new_sample = new_sample[mass_threshold]
 
+                if 'spectra' == name and 'res_nonoise10x' in file:
+                    new_sample *= 1e5
+
                 X[name] = np.concatenate([X[name], new_sample])
 
             for output_opt in args['outputs']:
@@ -51,9 +57,6 @@ class DataLoader:
 
             self.eos = np.concatenate([self.eos, np_file['coefficients'][mass_threshold]])
 
-        if 'spectra' in X and args['num_coefficients'] == 2:
-            X['spectra'] *= 10000.
-
         num_samples = len(X[list(X.keys())[0]])
         example_input = np.zeros((num_samples,))
 
@@ -66,7 +69,7 @@ class DataLoader:
             train_idxs = idxs[:num_train]
             val_idxs = idxs[num_train:]
         else:
-            kf = KFold(n_splits=10)
+            kf = KFold(n_splits=5)
             for _ in range(args['fold']):
                 train_idxs, val_idxs = next(kf.split(example_input))
 
@@ -88,7 +91,7 @@ class DataLoader:
                                                 scaler=train_scaler)
             self.validation_gen = ManyStarsGenerator(args, self.group_by_eos(x_test, y_test, eos_test, 'all'),
                                                      scaler=train_scaler)
-            print('Lengths:', len(self.train_gen), len(self.validation_gen))
+            print('Lengths:', len(self.train_gen), len(self.validation_gen), self.validation_gen.count_all_stars())
         else:
             self.train_gen = DataGenerator(x_train, y_train, args, scaler=train_scaler)
             self.validation_gen = DataGenerator(x_test, y_test, args, scaler=train_scaler)
@@ -130,6 +133,11 @@ class DataLoader:
                 np.random.uniform(np_min[i], np_max[i], size=num_samples)
                 for i in range(len(np_min))
             ]).T
+
+        elif sample_type == "uncertainty":
+            # 'nH', 'logTeff', 'dist'
+            uncertainty = np.random.uniform([0.5, 1, 0.9], [1.5, 1, 1.1], size=(num_samples, 3))
+            x['nuisance-parameters'] = x['nuisance-parameters'] * uncertainty
 
         elif sample_type == 'small_noise':
             x['nuisance-parameters'] = x['nuisance-parameters'] + np.random.uniform(-.1, .1, size=(num_samples, 3))

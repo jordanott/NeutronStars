@@ -1,9 +1,9 @@
 import numpy as np
 
 DATA_DIR = '/baldig/physicstest/NeutronStarsData/res_nonoise10x/'
-PARADIGMS = ['spectra2m-one', 'spectra2m-two',
-             'spectra+star2eos', 'spectra+star2mr', 'spectra2eos', 'spectra2mr',
-             'mr2eos', 'mr+star2spectra']
+PARADIGMS = ['spectra2m-one', 'spectra2m-two', 'spectra+star+mr2eos',
+             'spectra+star2eos', 'spectra+nH2eos', 'spectra+logTeff2eos', 'spectra+dist2eos', 'spectra+star2mr',
+             'spectra2eos', 'spectra2mr', 'mr2eos', 'mr+star2spectra']
 
 
 def get_paradigm_opts(num_coefficients=2):
@@ -25,6 +25,24 @@ def get_paradigm_opts(num_coefficients=2):
             'name': 'nuisance-parameters',
             'idxs': np.array([2, 3, 4]),
             'columns': ['nH', 'logTeff', 'dist'],
+        },
+        'nH': {
+            'key': 'details',
+            'name': 'nuisance-parameters',
+            'idxs': np.array([2]),
+            'columns': ['nH'],
+        },
+        'logTeff': {
+            'key': 'details',
+            'name': 'nuisance-parameters',
+            'idxs': np.array([3]),
+            'columns': ['logTeff'],
+        },
+        'dist': {
+            'key': 'details',
+            'name': 'nuisance-parameters',
+            'idxs': np.array([4]),
+            'columns': ['dist'],
         },
         'eos': {
             'key': 'coefficients',
@@ -49,7 +67,7 @@ def get_paradigm_opts(num_coefficients=2):
 
 def paradigm_settings(args):
     args['fold'] = 1
-    args['num_folds'] = 1 if args['sherpa'] else 10
+    args['num_folds'] = 1 if args['sherpa'] else 5
 
     num_coefficients = args['num_coefficients']
     opts = get_paradigm_opts(num_coefficients)

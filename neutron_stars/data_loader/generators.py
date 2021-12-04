@@ -26,7 +26,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
         self.args = args
         self.scaler = scaler
         self.num_stars = args['num_stars']
-        self.args['batch_size'] = args['batch_size']
+        # self.args['batch_size'] = args['batch_size']
         self.seed = 1
         np.random.seed(self.seed)
 
@@ -38,11 +38,14 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
         self.seed += 1
         np.random.seed(self.seed)
 
-    def __len__(self):
+    def count_all_stars(self):
         count = 0
         for y in self.Y:
             count += len(y[self.output_name])
-        return count // self.args['batch_size']
+        return count
+
+    def __len__(self):
+        return self.count_all_stars() // self.args['batch_size']
 
     def __getitem__(self, _):
         batch_x = {input_type: np.zeros((self.args['batch_size'],
@@ -71,7 +74,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
     def load_all(self, transform=True):
         np.random.seed(123)
         batch_size = self.args['batch_size']
-        self.args['batch_size'] = len(self.X)
+        self.args['batch_size'] = self.count_all_stars()
 
         x, y = self.__getitem__(None)
         if not transform:

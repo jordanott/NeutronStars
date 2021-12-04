@@ -9,7 +9,7 @@ def parse_args():
     parser.add_argument('--gpu', default='0', type=str)
     parser.add_argument('--sherpa', action='store_true')
 
-    parser.add_argument('--epochs', default=500, type=int)
+    parser.add_argument('--epochs', default=1000, type=int)
     parser.add_argument('--patience', default=25, type=int)
     parser.add_argument('--batch_size', default=256, type=int)
     parser.add_argument('--augmentation', action='store_true')

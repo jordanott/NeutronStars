@@ -2,7 +2,7 @@
 Source: https://www.tensorflow.org/tutorials/text/transformer#scaled_dot_product_attention
 """
 import tensorflow as tf
-from .common import AVAILABLE_ACTIVATIONS
+from neutron_stars.models.common import AVAILABLE_ACTIVATIONS
 
 
 def scaled_dot_product_attention(q, k, v, mask):
@@ -169,6 +169,7 @@ if __name__ == '__main__':
     model.compile(loss='mse', optimizer='adam')
     model.summary()
 
+    tf.keras.utils.plot_model(model, expand_nested=True)
     print(output.shape)
     print(model.inputs)
 

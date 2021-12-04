@@ -71,7 +71,7 @@ SCALER_TYPES = {
     'log': LogScaler,
     # 'exp': ExpScaler,
     'none': NoneScaler,
-    # 'minmax': MinMaxScaler,
+    'minmax': MinMaxScaler,
     'standard': StandardScaler,
 }
 

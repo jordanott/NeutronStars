@@ -151,18 +151,24 @@ def build_normal_model(args):
 
 def build_model(args):
     if args['model_type'] == 'transformer':
-        spectra_input = tf.keras.layers.Input(shape=(args['num_stars'], 250),
-                                              name='spectra')
-        # np_input = tf.keras.layers.Input(shape=(args['num_stars'], 3),
-        #                                  name='nuisance-parameter')
+        model_inputs = []
+        for input_opts in args['inputs']:
+            model_inputs.append(
+                tf.keras.layers.Input(
+                    shape=(args['num_stars'], len(input_opts['idxs'])),
+                    name=input_opts['name']
+                )
+            )
+        if len(model_inputs) > 1:
+            model_input = tf.keras.layers.concatenate(model_inputs)
+        else:
+            model_input = model_inputs[0]
 
-        # model_input = tf.keras.layers.concatenate([spectra_input, np_input])
-
-        output = Transformer(args)(spectra_input)
+        output = Transformer(args)(model_input)
         model_output = tf.keras.layers.Dense(args['num_coefficients'],
                                              name=args['outputs'][0]['name'])(output)
 
-        model = tf.keras.Model(inputs=spectra_input,
+        model = tf.keras.Model(inputs=model_inputs,
                                outputs=model_output)
     else:
         model = build_normal_model(args)

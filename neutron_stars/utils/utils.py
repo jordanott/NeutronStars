@@ -86,7 +86,7 @@ def store_training_history(history, args):
 def store_predictions(x, y, predictions, args, data_partition='test', save_inputs=False):
     if 'sample' in data_partition:
         columns = [f'pred_{c}' for c in args['output_columns']]
-        columns.extend([f'pred_std_{c}' for c in args['output_columns']])
+        # columns.extend([f'pred_std_{c}' for c in args['output_columns']])
     else:
         columns = [f'pred_{c}' for c in args['output_columns']]
 
