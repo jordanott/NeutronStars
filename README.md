@@ -9,6 +9,11 @@ git clone https://github.com/jordanott/NeutronStars.git
 # https://drive.google.com/file/d/1vcOBmjZ4knSJUayr4zb6uoC5Z2HLnBwK/view?usp=sharing
 mv ~/Downloads/model.onnx NeutronStars/SavedModels/mr+star2spectra/00069/
 
+# For the updated model trained on new data use
+# https://drive.google.com/file/d/11nfK3m45k3SqyVZ1HRiU4Pg0WllB487S/view?usp=sharing
+mkdir -p NeutronStars/SavedModels/mr+star2spectra/00069_retrained/
+mv ~/Downloads/model_retrained.onnx NeutronStars/SavedModels/mr+star2spectra/00069_retrained/model.onnx
+
 # Create a python virtual environment (Optional)
 python3 -m venv neutron_stars_env
 alias ns_env=neutron_stars_env/bin/python
