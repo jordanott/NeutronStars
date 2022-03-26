@@ -11,7 +11,7 @@ tf2 run_scripts/hp_search.py --paradigm spectra2m-one --model_type transformer -
 tf2 run_scripts/hp_search.py --paradigm spectra2m-two --model_type transformer --max_concurrent 12 --name _v1 --gpus 0,1
 
 # Redo Spectra Generator with conv and relu output
-tf2 run_scripts/hp_search.py --paradigm mr+star2spectra --max_concurrent 10 --gpus 2,3 --name _v2
+tf2 run_scripts/hp_search.py --paradigm mr+star2spectra --max_concurrent 8 --gpus 0,1,2,3 --name _v3
 """
 
 import os
@@ -33,7 +33,7 @@ args = parser.parse_args()
 os.makedirs(args.output_dir, exist_ok=True)
 
 parameters = [sherpa.Choice('mass_threshold', [3, 6]),
-              sherpa.Discrete('num_layers', [1, 12]),
+              sherpa.Discrete('num_layers', [1, 15]),
               sherpa.Choice('num_nodes', list(range(64, 2049, 64))),
               sherpa.Choice('batch_norm', [0, 1]),
               sherpa.Continuous('dropout', [0, 1]),
