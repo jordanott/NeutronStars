@@ -47,7 +47,7 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
     def __len__(self):
         return self.count_all_stars() // self.args['batch_size']
 
-    def __getitem__(self, _):
+    def __getitem__(self, _, transform=True):
         batch_x = {input_type: np.zeros((self.args['batch_size'],
                                          self.num_stars,
                                          self.X[0][input_type].shape[-1]))
@@ -69,7 +69,10 @@ class ManyStarsGenerator(tf.keras.utils.Sequence):
 
             batch_y[bidx] = np.expand_dims(y[0], axis=0)
 
-        return self.scaler.transform(batch_x, {self.output_name: batch_y})
+        if transform:
+            return self.scaler.transform(batch_x, {self.output_name: batch_y})
+
+        return batch_x, {self.output_name: batch_y}
 
     def load_all(self, transform=True):
         np.random.seed(123)
@@ -113,13 +116,15 @@ class DataGenerator(tf.keras.utils.Sequence):
     def __len__(self):
         return self.Y[list(self.Y.keys())[0]].shape[0] // self.batch_size
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx, transform=True):
         x = {input_type: self.X[input_type][idx:idx + self.batch_size]
              for input_type in self.X}
         y = {output_type: self.Y[output_type][idx:idx + self.batch_size]
              for output_type in self.Y}
 
-        return self.scaler.transform(x, y)
+        if transform:
+            return self.scaler.transform(x, y)
+        return x, y
 
     def to_dataframe(self, include_inputs=False):
         x, y = self.load_all(transform=False)

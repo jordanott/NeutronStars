@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument('--mass_threshold', default=3, type=float)
     parser.add_argument('--num_coefficients', default=2, type=int)
     parser.add_argument('--paradigm', default='spectra2eos', choices=ns.PARADIGMS)
-    parser.add_argument('--data_dir', default='/baldig/physicstest/NeutronStarsData/res_nonoise10x/')
+    parser.add_argument('--data_dir', default='/baldig/physicstest/NeutronStarsData/res_nonoise10*/')
     parser.add_argument('--scaler_type', default='standard2standard', help='Same format as paradigm: log+none2standard')
     parser.add_argument('--run_type', choices=['train', 'test', 'sample'], default='train')
 
@@ -53,7 +53,7 @@ def parse_args():
 
     # IF CONDUCTING HP SEARCH: GET ARGS
     if args['sherpa']:
-        client = sherpa.Client()
+        client = sherpa.Client(host="127.0.0.1")
         trial = client.get_trial()
         args.update(trial.parameters)
         args['trial_id'] = trial.id

@@ -16,7 +16,7 @@ class SpectraGenerator(ONNX):
         self.spectra_scaler = ns.data_loader.ZeroMean(
             mean=np.load('SavedModels/mr+star2spectra/00069/spectra.npy'))
 
-        self.session = InferenceSession("SavedModels/mr+star2spectra/00069/model.onnx",
+        self.session = InferenceSession("SavedModels/mr+star2spectra/00069_retrained/model.onnx",
                                         sess_options=self.sess_options)
 
     def __call__(self, mass, radius, nH, logTeff, dist):

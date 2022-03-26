@@ -7,6 +7,7 @@ import tqdm
 import glob
 import pprint
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import neutron_stars as ns
 
@@ -23,6 +24,8 @@ pp.pprint(args)
 
 # DETERMINE INPUTS AND TARGETS FOR GIVEN PARADIGM
 ns.paradigm_settings(args)
+
+args["data_dir"] = "/baldig/physicstest/NeutronStarsData/res_nonoise10*/"
 
 if args['run_type'] == 'train':
     ns.utils.store_settings(args)
@@ -88,8 +91,8 @@ elif args['run_type'] == 'sample':
     args['sherpa'] = True
     args['num_folds'] = 1
 
-    num_eos_to_sample = 25
-    num_samples_per_star = 50
+    number_of_batches = 200
+    num_samples_per_star = 100
 
     # LOAD MODEL
     model = tf.keras.models.load_model(args['model_dir'],
@@ -98,57 +101,60 @@ elif args['run_type'] == 'sample':
 
     # BUILD THE DATA LOADER & PARTITION THE DATASET
     data_loader = ns.DataLoader(args, small=False)
-    args["model_type"] = "normal"
+    # args["model_type"] = "normal"
 
-    for sample_type in ['uncertainty', 'knn_spectra', 'small_noise', 'poisson', 'empirical', 'uniform']:
+    np.random.seed(123)
+    for sample_type in ["small_noise", "uncertainty", "none", "poisson", 'empirical', 'uniform']:
 
         # :SINGLE OUTPUT ASSUMPTION:
         output_name = args['outputs'][0]['name']
+        ids = np.zeros((0, 2))
         targets = np.zeros((0, args['output_size']))
         predictions = np.zeros((0, args['output_size']))
 
-        # HOW ARE WE SAMPLING
-        sample_fn = data_loader.sample_nuisance_parameters
-        if sample_type == 'poisson':
-            sample_fn = data_loader.sample_poisson_spectra
+        for batch_idx in tqdm.tqdm(range(number_of_batches)):
+            # GET A BATCH FROM THE DATA LOADER
+            x, y = data_loader.train_gen.__getitem__(np.random.randint(0, len(data_loader.train_gen)), transform=False)
 
-        for x, y, num_stars in tqdm.tqdm(data_loader.group_by_eos(num_samples=num_eos_to_sample),
-                                         total=num_eos_to_sample):
+            for sample_number in range(1 if sample_type == "none" else num_samples_per_star):
+                # SAMPLE THE DATA WITH NOISE ACCORDING TO THE SAMPLE TYPE
+                x_sample = data_loader.sample(x, sample_type=sample_type)
+                # TRANSFORM THE DATA AFTER SAMPLING
+                x_sample, _ = data_loader.train_gen.scaler.transform(x_sample, {})
 
-            for idx in range(num_stars):
-                x_sample, y_sample = sample_fn(x, y, idx,
-                                               num_samples=num_samples_per_star,
-                                               sample_type=sample_type)
-
+                # FEED THE DATA THROUGH THE NETWORK
                 y_hat_sample = model.predict(x_sample, batch_size=args['batch_size'])
 
                 y_hat_sample = {output_name: y_hat_sample}
                 _, y_hat_sample = data_loader.train_gen.scaler.inverse_transform({}, y_hat_sample)
                 y_hat_sample = y_hat_sample[output_name]
 
-                # TODO: change
                 targets = np.concatenate([
                     targets,
-                    np.tile(y[output_name][idx].reshape(1, -1), (num_samples_per_star, 1))
+                    y[output_name]
                 ], axis=0)
-
-                # :SINGLE OUTPUT ASSUMPTION:
-                # y_hat_statistic = np.concatenate([np.mean(y_hat_sample, axis=0),
-                #                                   np.std(y_hat_sample, axis=0)],
-                #                                  axis=0).reshape(1, -1)
-                #
-                # # :SINGLE OUTPUT ASSUMPTION:
-                # targets = np.concatenate([targets,
-                #                          y[output_name][idx].reshape(1, -1)])
 
                 predictions = np.concatenate([
                     predictions,
                     y_hat_sample
                 ], axis=0)
 
-        ns.utils.store_predictions(x=None, y=targets,
-                                   predictions=predictions, args=args,
-                                   data_partition=args['run_type'] + '_' + sample_type)
+                # CREATE UNIQUE IDs TO TRACK WHICH BATCH AND IDX THE SAMPLE CAME FROM
+                _ids = np.ones((args["batch_size"], 2))
+                _ids[:, 0] = batch_idx
+                _ids[:, 1] = np.arange(args["batch_size"])
+                ids = np.concatenate([ids, _ids])
+
+        ids_df = pd.DataFrame(data=ids, columns=["batch_number", "index_in_batch"])
+        targets_df = pd.DataFrame(data=targets, columns=args['output_columns'])
+        predictions_df = pd.DataFrame(data=predictions.squeeze(), columns=[f'pred_{c}' for c in args['output_columns']])
+
+        df = pd.concat([ids_df, targets_df, predictions_df], axis=1)
+        prediction_file = args['output_dir'] + f'Predictions/sample_{sample_type}_%05d_%02d.csv' % (args['trial_id'], args['fold'])
+        df.to_csv(prediction_file)
+
+        print('Predictions written to:', prediction_file)
+
 
 elif args['run_type'] == 'test':
     """
@@ -164,6 +170,7 @@ elif args['run_type'] == 'test':
 
         args['load_settings_from'] = model_dir.replace('Models', 'Settings') + '.json'
         ns.utils.load_settings(args)
+        args["data_dir"] = "/baldig/physicstest/NeutronStarsData/res_nonoise10*/"
 
         args['fold'] = 1
         args['sherpa'] = "SherpaResults" in args["model_dir"]

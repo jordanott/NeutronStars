@@ -1,7 +1,7 @@
 import numpy as np
 
-DATA_DIR = '/baldig/physicstest/NeutronStarsData/res_nonoise10x/'
-PARADIGMS = ['spectra2m-one', 'spectra2m-two', 'spectra+star+mr2eos',
+# DATA_DIR = '/baldig/physicstest/NeutronStarsData/res_nonoise10x/'
+PARADIGMS = ['spectra2m-one', 'spectra2m-two', 'spectra+star+mr2eos', "spectra+star+eos2mr",
              'spectra+star2eos', 'spectra+nH2eos', 'spectra+logTeff2eos', 'spectra+dist2eos', 'spectra+star2mr',
              'spectra2eos', 'spectra2mr', 'mr2eos', 'mr+star2spectra']
 
