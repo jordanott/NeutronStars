@@ -58,11 +58,16 @@ def extra_dat(f):
         spectrum = f.readline()#.decode('UTF-8')
         spectrum = list(map(float, spectrum.split(', ')[:-1]))
 
-        star_nums[idx] = star_num
-        details[idx] = detail
-        coefficients[idx] = coefficient[1:]
-        spectra[idx] = spectrum
-        idx += 1
+        try:
+            star_nums[idx] = star_num
+            details[idx] = detail
+            coefficients[idx] = coefficient[1:]
+            spectra[idx] = spectrum
+            idx += 1
+        except Exception as e:
+            print(e)
+            print(file_name)
+            break
 
     return star_nums, details, coefficients, spectra
 
@@ -96,7 +101,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default='/baldig/physicstest/NeutronStarsData/res/')
+    parser.add_argument('--data_dir', default='/baldig/physicstest/NeutronStarsData/res_nonoise1000x/')
     args = parser.parse_args()
 
     all_files = list(iglob(os.path.join(args.data_dir, '*.dat*')))
