@@ -1,4 +1,3 @@
-import sherpa
 import argparse
 import neutron_stars as ns
 

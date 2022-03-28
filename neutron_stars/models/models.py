@@ -1,4 +1,3 @@
-import sherpa
 import tensorflow as tf
 from .transformer import Transformer
 from .common import AVAILABLE_ACTIVATIONS
