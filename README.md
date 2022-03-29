@@ -10,7 +10,7 @@ git clone https://github.com/jordanott/NeutronStars.git
 mv ~/Downloads/model.onnx NeutronStars/SavedModels/mr+star2spectra/00069/
 
 # For the updated model trained on new data use
-# https://drive.google.com/file/d/11nfK3m45k3SqyVZ1HRiU4Pg0WllB487S/view?usp=sharing
+# https://drive.google.com/file/d/1L5SarGlvGGWgcx6TZrGMWsVqkXwsycXt/view?usp=sharing
 mkdir -p NeutronStars/SavedModels/mr+star2spectra/00069_retrained/
 mv ~/Downloads/model_retrained.onnx NeutronStars/SavedModels/mr+star2spectra/00069_retrained/model.onnx
 
@@ -103,5 +103,5 @@ plt.savefig('example_generated_spectra.png')
 ## [ONNX Conversion](https://github.com/onnx/tensorflow-onnx)
 This is a reference for myself, others can ignore it
 ```bash
-tf2 -m tf2onnx.convert --saved-model tensorflow-model-path --output model.onnx
+tf2 -m tf2onnx.convert --saved-model Results/mr+star2spectra_v2/Models/00069/ --output SavedModels/mr+star2spectra/00069_retrained/model.onnx
 ```
