@@ -10,11 +10,11 @@ class SpectraGenerator(ONNX):
     def __init__(self):
         super().__init__()
 
-        self.mr_scaler = joblib.load('SavedModels/mr+star2spectra/00069/mass-radius')
+        self.mr_scaler = joblib.load('SavedModels/mr+star2spectra/00069_retrained/mass-radius')
         self.np_scaler = ns.data_loader.ZeroMean(
-            mean=np.load('SavedModels/mr+star2spectra/00069/nuisance-parameters.npy'))
+            mean=np.load('SavedModels/mr+star2spectra/00069_retrained/nuisance-parameters.npy'))
         self.spectra_scaler = ns.data_loader.ZeroMean(
-            mean=np.load('SavedModels/mr+star2spectra/00069/spectra.npy'))
+            mean=np.load('SavedModels/mr+star2spectra/00069_retrained/spectra.npy'))
 
         self.session = InferenceSession("SavedModels/mr+star2spectra/00069_retrained/model.onnx",
                                         sess_options=self.sess_options)
@@ -38,6 +38,7 @@ class SpectraGenerator(ONNX):
 
 
 if __name__ == '__main__':
+    ns.parse_args()
     spectra_generator = SpectraGenerator()
     spectra = spectra_generator(mass=2.581471, radius=12.089365,
                                 nH=0.013734, logTeff=6.273879, dist=6.011103)
