@@ -105,3 +105,25 @@ This is a reference for myself, others can ignore it
 ```bash
 tf2 -m tf2onnx.convert --saved-model tensorflow-model-path --output model.onnx
 ```
+
+## Citations
+
+```
+@article{farrell2023deducing,
+  title={Deducing neutron star equation of state parameters directly from telescope spectra with uncertainty-aware machine learning},
+  author={Farrell, Delaney and Baldi, Pierre and Ott, Jordan and Ghosh, Aishik and Steiner, Andrew W and Kavitkar, Atharva and Lindblom, Lee and Whiteson, Daniel and Weber, Fridolin},
+  journal={Journal of Cosmology and Astroparticle Physics},
+  volume={2023},
+  number={02},
+  pages={016},
+  year={2023},
+  publisher={IOP Publishing}
+}
+
+@article{farrell2023deducing,
+  title={Deducing Neutron Star Equation of State from Telescope Spectra with Machine-learning-derived Likelihoods},
+  author={Farrell, Delaney and Baldi, Pierre and Ott, Jordan and Ghosh, Aishik and Steiner, Andrew W and Kavitkar, Atharva and Lindblom, Lee and Whiteson, Daniel and Weber, Fridolin},
+  journal={arXiv preprint arXiv:2305.07442},
+  year={2023}
+}
+```
